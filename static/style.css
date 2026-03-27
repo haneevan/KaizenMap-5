@@ -1,0 +1,281 @@
+/* --- 1. Global & Fonts --- */
+@import url('https://fonts.googleapis.com');
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    margin: 0;
+}
+
+nav {
+    z-index: 50 !important; 
+}
+/* --- 2. Login Page Specifics --- */
+body.login-bg {
+    animation: fadeIn 0.5s ease-out;
+    background-image: url('resource/PicIcon/office.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.text-red-500 {
+    animation: shake 0.4s ease-in-out;
+}
+
+/* --- 3. UI Interactions --- */
+input:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    transition: box-shadow 0.2s ease;
+}
+
+/* --- 4. Dashboard & Profile Menu Fixes --- */
+
+/* Fix: Ensure Profile Dropdown is ALWAYS above the Map */
+#user-dropdown {
+    z-index: 9999 !important; 
+    position: absolute !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* GitHub style active sidebar state */
+.nav-active {
+    background-color: #334155; /* slate-700 */
+    color: white !important;
+    border-left: 4px solid #3b82f6; /* Blue accent line */
+}
+
+/* --- 5. Leaflet Map Adjustments --- */
+
+/* Move layer control down so it doesn't overlap the Nav Bar */
+.leaflet-top.leaflet-right {
+    top: 10px; 
+}
+
+/* Modernize the Map Popups (HoYoLAB style) */
+.leaflet-popup-content-wrapper {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+
+/* Styling the Grouped Layer Control */
+.leaflet-control-layers {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 10px !important;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    color: #334155;
+    z-index: 1000; /* sit above default leaflet controls */
+}
+
+/* Make headers bold and distinct like GitHub/Boot.dev menus */
+.leaflet-control-layers-group-name {
+    font-weight: 800 !important;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.leaflet-control-layers-selector {
+    margin-right: 8px;
+}
+
+/* --- 6. Tree Map Selection (Leaflet.layers.tree Style) --- */
+
+/* The main container */
+.leaflet-control-layers-tree {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+    background: white !important;
+}
+
+/* Style the Folder Headers (Factories) */
+.leaflet-layerstree-header {
+    font-weight: 800 !important;
+    color: #1e293b;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    padding-bottom: 2px;
+}
+
+/* Add the folder icon to the headers */
+.leaflet-layerstree-header::before {
+    content: '\f07b'; 
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    margin-right: 8px;
+    font-size: 11px;
+    color: #64748b;
+}
+
+/* Indent children and add the vertical dashed line (seigi-style) */
+.leaflet-layerstree-children {
+    margin-left: 12px !important;
+    padding-left: 8px !important;
+    border-left: 1px dashed #cbd5e1;
+}
+
+/* Style the individual floor labels */
+.leaflet-layerstree-label {
+    cursor: pointer;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    padding: 2px 0;
+    transition: color 0.2s;
+}
+
+.leaflet-layerstree-label:hover {
+    color: #3b82f6;
+}
+
+/* --- 7. Bullet Point (Radio) Styling --- */
+
+/* Target radio buttons inside the tree plugin */
+.leaflet-layerstree-leaf input[type="radio"] {
+    appearance: none; 
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #cbd5e1;
+    border-radius: 50%; 
+    margin-right: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+/* The "Active" Blue Bullet Point */
+.leaflet-layerstree-leaf input[type="radio"]:checked {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+    box-shadow: inset 0 0 0 3px white; /* The white ring inside the blue dot */
+}
+
+.leaflet-layerstree-leaf input[type="radio"]:hover {
+    border-color: #3b82f6;
+}
+
+/* Hide the default +/- icons if you want it to look purely like a list */
+.leaflet-layerstree-nevershow {
+    display: none;
+}
+
+/* --- 8. Custom Marker & Popup Styling --- */
+
+/* Professional Popup Container */
+.leaflet-popup-content {
+    margin: 12px;
+    line-height: 1.4;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* Style the "Create Marker" button inside the map popup */
+.leaflet-popup-content button {
+    margin-top: 8px;
+    width: 100%;
+    background-color: #2563eb; /* Blue-600 */
+    color: white;
+    padding: 6px 0;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: background 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.leaflet-popup-content button:hover {
+    background-color: #1d4ed8; /* Blue-700 */
+}
+
+/* Custom Marker Pin Shape (If you use L.divIcon) */
+.custom-marker-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ef4444; /* Red for Kaizen */
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* Optional: Add a pulse animation to markers to make them noticeable */
+.leaflet-marker-icon {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+/* Style the Floating Trash Control */
+#remove-markers-btn {
+    background-color: white;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s;
+}
+
+#remove-markers-btn:hover {
+    background-color: #fee2e2; /* light red */
+    color: #ef4444; /* red */
+    transform: scale(1.1);
+}
+
+#kaizen-side-panel {
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(100%); /* Start hidden off-screen to the right */
+}
+
+/* Custom Form Select */
+.form-select-custom {
+    @apply w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all;
+}
+
+/* Custom Scrollbar for the form */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
