@@ -1,4 +1,4 @@
-/* --- 1. Global & Fonts --- */
+/* --- 1. GLOBAL SETTINGS & FONTS --- */
 @import url('https://fonts.googleapis.com');
 
 body {
@@ -7,10 +7,32 @@ body {
     margin: 0;
 }
 
-nav {
-    z-index: 50 !important; 
+/* --- 2. STRUCTURAL LAYERING (Z-INDEX HACK) --- */
+/* Everything here ensures the UI stays above the Map blueprints */
+
+nav, .fixed, .sticky {
+    z-index: 5000 !important;
 }
-/* --- 2. Login Page Specifics --- */
+
+#user-dropdown {
+    z-index: 9999 !important; 
+    position: absolute !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+#kaizen-map {
+    z-index: 1 !important;
+}
+
+.leaflet-pane {
+    z-index: 1 !important;
+}
+
+.leaflet-control-container {
+    z-index: 400 !important; 
+}
+
+/* --- 3. LOGIN PAGE SPECIFICS --- */
 body.login-bg {
     animation: fadeIn 0.5s ease-out;
     background-image: url('resource/PicIcon/office.jpg');
@@ -38,7 +60,7 @@ body.login-bg {
     animation: shake 0.4s ease-in-out;
 }
 
-/* --- 3. UI Interactions --- */
+/* --- 4. UI COMPONENTS & INTERACTION --- */
 input:focus {
     outline: none;
     border-color: transparent;
@@ -46,30 +68,55 @@ input:focus {
     transition: box-shadow 0.2s ease;
 }
 
-/* --- 4. Dashboard & Profile Menu Fixes --- */
-
-/* Fix: Ensure Profile Dropdown is ALWAYS above the Map */
-#user-dropdown {
-    z-index: 9999 !important; 
-    position: absolute !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+/* Dashboard Card Scaling */
+.dashboard-card {
+    @apply bg-white p-8 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-/* GitHub style active sidebar state */
+.dashboard-stat-number {
+    @apply text-4xl font-black mt-2;
+    background: linear-gradient(45deg, #1e293b, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
 .nav-active {
     background-color: #334155; /* slate-700 */
     color: white !important;
     border-left: 4px solid #3b82f6; /* Blue accent line */
 }
 
-/* --- 5. Leaflet Map Adjustments --- */
+#kaizen-side-panel {
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(100%);
+    z-index: 6000 !important; /* Ensure panel is above everything */
+}
 
-/* Move layer control down so it doesn't overlap the Nav Bar */
+.form-select-custom {
+    @apply w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+/* --- 5. LEAFLET MAP CORE UI --- */
+
+/* Positioning */
 .leaflet-top.leaflet-right {
     top: 10px; 
 }
 
-/* Modernize the Map Popups (HoYoLAB style) */
+/* Popups */
 .leaflet-popup-content-wrapper {
     background: rgba(255, 255, 255, 0.9) !important;
     backdrop-filter: blur(8px);
@@ -77,46 +124,43 @@ input:focus {
     border: 1px solid rgba(0,0,0,0.05);
 }
 
-
-/* Styling the Grouped Layer Control */
-.leaflet-control-layers {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    padding: 10px !important;
+.leaflet-popup-content {
+    margin: 12px;
+    line-height: 1.4;
     font-family: 'Noto Sans JP', sans-serif;
-    font-size: 13px;
-    color: #334155;
-    z-index: 1000; /* sit above default leaflet controls */
 }
 
-/* Make headers bold and distinct like GitHub/Boot.dev menus */
-.leaflet-control-layers-group-name {
-    font-weight: 800 !important;
-    color: #1e293b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: block;
+.leaflet-popup-content button {
     margin-top: 8px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid #f1f5f9;
+    width: 100%;
+    background-color: #2563eb;
+    color: white;
+    padding: 6px 0;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: background 0.2s;
+    border: none;
+    cursor: pointer;
 }
 
-.leaflet-control-layers-selector {
-    margin-right: 8px;
+.leaflet-popup-content button:hover {
+    background-color: #1d4ed8;
 }
 
-/* --- 6. Tree Map Selection (Leaflet.layers.tree Style) --- */
+/* --- 6. LEAFLET TREE & LAYER CONTROLS --- */
 
-/* The main container */
+.leaflet-control-layers, 
 .leaflet-control-layers-tree {
     border: 1px solid #e2e8f0 !important;
     border-radius: 12px !important;
     padding: 12px !important;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
     background: white !important;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
 }
 
-/* Style the Folder Headers (Factories) */
+.leaflet-control-layers-group-name,
 .leaflet-layerstree-header {
     font-weight: 800 !important;
     color: #1e293b;
@@ -129,7 +173,6 @@ input:focus {
     padding-bottom: 2px;
 }
 
-/* Add the folder icon to the headers */
 .leaflet-layerstree-header::before {
     content: '\f07b'; 
     font-family: "Font Awesome 6 Free";
@@ -139,14 +182,12 @@ input:focus {
     color: #64748b;
 }
 
-/* Indent children and add the vertical dashed line (seigi-style) */
 .leaflet-layerstree-children {
     margin-left: 12px !important;
     padding-left: 8px !important;
     border-left: 1px dashed #cbd5e1;
 }
 
-/* Style the individual floor labels */
 .leaflet-layerstree-label {
     cursor: pointer;
     color: #475569;
@@ -162,9 +203,7 @@ input:focus {
     color: #3b82f6;
 }
 
-/* --- 7. Bullet Point (Radio) Styling --- */
-
-/* Target radio buttons inside the tree plugin */
+/* --- 7. CUSTOM RADIO BUTTONS (TREE VIEW) --- */
 .leaflet-layerstree-leaf input[type="radio"] {
     appearance: none; 
     -webkit-appearance: none;
@@ -179,55 +218,22 @@ input:focus {
     background: white;
 }
 
-/* The "Active" Blue Bullet Point */
 .leaflet-layerstree-leaf input[type="radio"]:checked {
     border-color: #3b82f6;
     background-color: #3b82f6;
-    box-shadow: inset 0 0 0 3px white; /* The white ring inside the blue dot */
+    box-shadow: inset 0 0 0 3px white;
 }
 
-.leaflet-layerstree-leaf input[type="radio"]:hover {
-    border-color: #3b82f6;
-}
-
-/* Hide the default +/- icons if you want it to look purely like a list */
 .leaflet-layerstree-nevershow {
     display: none;
 }
 
-/* --- 8. Custom Marker & Popup Styling --- */
-
-/* Professional Popup Container */
-.leaflet-popup-content {
-    margin: 12px;
-    line-height: 1.4;
-    font-family: 'Noto Sans JP', sans-serif;
-}
-
-/* Style the "Create Marker" button inside the map popup */
-.leaflet-popup-content button {
-    margin-top: 8px;
-    width: 100%;
-    background-color: #2563eb; /* Blue-600 */
-    color: white;
-    padding: 6px 0;
-    border-radius: 6px;
-    font-weight: 600;
-    transition: background 0.2s;
-    border: none;
-    cursor: pointer;
-}
-
-.leaflet-popup-content button:hover {
-    background-color: #1d4ed8; /* Blue-700 */
-}
-
-/* Custom Marker Pin Shape (If you use L.divIcon) */
+/* --- 8. MARKER & BUTTON STYLING --- */
 .custom-marker-pin {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #ef4444; /* Red for Kaizen */
+    background-color: #ef4444; 
     color: white;
     border: 2px solid white;
     border-radius: 50%;
@@ -236,12 +242,10 @@ input:focus {
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
-/* Optional: Add a pulse animation to markers to make them noticeable */
 .leaflet-marker-icon {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
-/* Style the Floating Trash Control */
 #remove-markers-btn {
     background-color: white;
     width: 34px;
@@ -256,26 +260,7 @@ input:focus {
 }
 
 #remove-markers-btn:hover {
-    background-color: #fee2e2; /* light red */
-    color: #ef4444; /* red */
+    background-color: #fee2e2;
+    color: #ef4444;
     transform: scale(1.1);
-}
-
-#kaizen-side-panel {
-    transition: transform 0.3s ease-in-out;
-    transform: translateX(100%); /* Start hidden off-screen to the right */
-}
-
-/* Custom Form Select */
-.form-select-custom {
-    @apply w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all;
-}
-
-/* Custom Scrollbar for the form */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #e2e8f0;
-    border-radius: 10px;
 }
