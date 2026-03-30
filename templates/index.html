@@ -119,6 +119,14 @@
                 <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest text-center">System under development</p>
             </div>
         </aside>
+
+        <button onclick="openGlobalNewForm()" class="fixed bottom-8 right-8 z-[6000] bg-blue-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 hover:scale-110 transition-all group">
+                <i class="fa-solid fa-plus text-xl"></i>
+                <span class="absolute right-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    新規改善提案 (New Report)
+                </span>
+        </button>
+
         <!--Content Sections-->
         <main class="flex-grow bg-white relative overflow-hidden">
             <!--Home Section-->
@@ -128,8 +136,11 @@
                         <h2 class="text-xl font-black text-slate-800 tracking-tight">ダッシュボード <span class="text-sm font-normal text-slate-400 ml-2">Dashboard</span></h2>
                         <div class="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">2026年 03月 24日 現在</div>
                     </div>
+                    
+                        
 
                     <div class="grid grid-cols-4 gap-0 rounded-xl overflow-hidden border border-slate-200 shadow-sm mb-6">
+                        <!--improvement index-->
                         <div class="bg-white p-4 border-r border-slate-100 flex flex-col items-center">
                             <span class="text-[10px] font-bold text-red-500 mb-1 tracking-widest">指摘数</span>
                             <div class="text-2xl font-black text-slate-800">20</div>
@@ -150,6 +161,7 @@
                             <div class="text-2xl font-black text-slate-800">05</div>
                             <div class="w-full h-1 bg-slate-300 mt-2 rounded-full"></div>
                         </div>
+                    <!--------------->
                     </div>
 
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6 p-2">
@@ -316,6 +328,13 @@
         <span class="text-slate-400 text-xs">(Click to report)</span>
     </div>
     </div>
+
+    <!--Side Panel Overlay-->
+    <div id="side-panel-overlay" 
+        onclick="closeKaizenPanel()" 
+        class="fixed inset-0 bg-black/20 z-[9998] hidden opacity-0 transition-opacity duration-300">
+    </div>
+
     <!--Side Panel-->
     <div id="kaizen-side-panel" class="fixed top-0 right-0 h-full w-[450px] bg-white shadow-2xl z-[10000] transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
     
@@ -378,7 +397,7 @@
             <textarea id="kaizen-description" rows="3" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="現状の困りごとや..."></textarea>
         </div>
     </div>
-
+    <!---classification--->
     <div class="space-y-3">
         <label class="text-[11px] font-black text-slate-400 uppercase tracking-wider block ml-1">
             提案区分 (Classification)
@@ -422,19 +441,19 @@
             </label>
         </div>
     </div>
-
+    <!---proposed method--->
     <div class="space-y-4">
         <div>
             <label class="text-[11px] font-black text-slate-400 uppercase mb-1 block tracking-wider">改善案 (Proposed Method)</label>
             <textarea rows="3" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="どのように改善しますか？"></textarea>
         </div>
-
+    <!---benefits--->
         <div>
             <label class="text-[11px] font-black text-slate-400 uppercase mb-1 block tracking-wider">期待効果 (Benefits)</label>
             <textarea rows="2" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="時間短縮、コスト削減、安全性向上など..."></textarea>
         </div>
     </div>
-
+    <!---photo upload / before improvement--->
     <div class="space-y-3">
         <label class="text-[11px] font-black text-slate-400 uppercase tracking-wider block ml-1">
             改善前の写真
@@ -445,27 +464,29 @@
             <input type="file" id="before-photo-input" class="hidden" accept="image/*">
         </div>
     </div>
+    <!---location selection--->
+    <div class="p-4 space-y-3 bg-slate-50 rounded-xl border border-slate-200">
+    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">場所の選択 (Location)</label>
+    
+    <select id="select-main-area" class="w-full p-2 text-sm rounded border border-slate-300">
+        <option value="">エリアを選択 (Select Area)</option>
+        <option value="factory">工場エリア (Factories)</option>
+        <option value="office">事務・倉庫 (Office & Others)</option>
+    </select>
 
-    <div class="space-y-3 pb-8">
-        <label class="text-[11px] font-black text-slate-400 uppercase flex items-center gap-2 tracking-wider">
-            <i class="fa-solid fa-location-dot text-blue-500"></i> 場所の選択 (Location)
-        </label>
-        <div class="grid grid-cols-1 gap-2">
-            <select id="drop-area" class="form-select-custom" onchange="updateBuildings()">
-                <option value="">Select Area...</option>
-                <option value="factory">工場エリア (Factories)</option>
-                <option value="office">事務・倉庫 (Office & Others)</option>
-            </select>
-            <select id="drop-building" class="form-select-custom hidden"></select>
-            <select id="drop-floor" class="form-select-custom hidden" onchange="showMiniMap()"></select>
-        </div>
+    <select id="select-building" disabled class="w-full p-2 text-sm rounded border border-slate-300 opacity-50">
+        <option value="">工場を選択 (Select Building)</option>
+    </select>
 
-        <div id="mini-map-container" class="hidden h-44 w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 relative overflow-hidden shadow-inner">
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <i class="fa-solid fa-crosshairs text-blue-500 text-2xl opacity-50"></i>
-            </div>
-        </div>
+    <select id="select-floor" disabled class="w-full p-2 text-sm rounded border border-slate-300 opacity-50">
+        <option value="">階を選択 (Select Floor)</option>
+    </select>
 
+    <div id="sync-mini-map" class="w-full h-48 bg-slate-200 rounded-lg mt-2 overflow-hidden relative border-2 border-dashed border-slate-300 flex items-center justify-center">
+        <span class="text-[10px] text-slate-400">場所を選択するとマップが表示されます</span>
+    </div>
+
+    <!---form actions--->
         <div class="p-4 border-t border-slate-100 bg-white flex gap-2">
         <button class="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 transition-all">
             Save Draft
@@ -474,11 +495,36 @@
             Submit Proposal
         </button>
         </div>
+
     </div>
+    </div>
+    </div>
+    <!--Map Lightbox-->
+    <div id="map-lightbox" class="fixed inset-0 z-[11000] bg-black/80 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-white w-[90vw] h-[85vh] rounded-2xl relative flex flex-col overflow-hidden shadow-2xl">
+        <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+            <div>
+                <h3 id="lightbox-title" class="font-bold text-slate-800">場所をピン留め (Drop a Pin)</h3>
+                <p id="lightbox-subtitle" class="text-xs text-slate-500 italic">マップ内をクリックして正確な場所を指定してください</p>
+            </div>
+            <button onclick="closeMapLightbox()" class="text-slate-400 hover:text-slate-600 text-2xl px-2">&times;</button>
+        </div>
+        
+        <div class="flex-grow overflow-auto bg-slate-200 relative cursor-crosshair p-10 flex justify-center items-start">
+            <div class="relative inline-block shadow-lg">
+                <img id="lightbox-img" src="" class="max-w-none h-auto">
+                <div id="lightbox-pin" class="absolute hidden text-red-600 pointer-events-none transition-all duration-200">
+                    <i class="fa-solid fa-location-dot text-3xl"></i>
+                </div>
+            </div>
+        </div>
 
-
-
-</div>
+        <div class="p-4 border-t flex justify-end gap-3 bg-white">
+            <button onclick="closeMapLightbox()" class="px-6 py-2 text-sm font-bold text-slate-500">Cancel</button>
+            <button onclick="confirmLightboxLocation()" class="px-6 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg shadow-blue-200 shadow-lg">Set Location</button>
+        </div>
+    </div>
+    </div>
 
     <script src="/static/script.js"></script>
 </body>
