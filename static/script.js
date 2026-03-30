@@ -4,6 +4,8 @@ let map;
 let activeMarkerLayer = null; 
 let tempCoords = null;
 let tempMarker = null; // Holds the grey "pending" pin
+let tempRelX = 0;
+let tempRelY = 0;
 
 // Mock User Data for Permission Logic
 const currentUser = { id: "USR001", role: "admin" }; 
@@ -14,8 +16,7 @@ const factoryConfig = {
         folder: "1st Factory",
         floors: {
             "1階": { path: "1st_Factory_1F.png", id: "f1_1f" },
-            "2階-1": { path: "1st_Factory_2F-1.png", id: "f1_2f_1" },
-            "2階-2": { path: "1st_Factory_2F-2.png", id: "f1_2f_2" },
+            "2階": { path: "1st_Factory_2F-1.png", id: "f1_2f_1" },
             "3階": { path: "1st_Factory_3F.png", id: "f1_3f" },
             "屋外": { path: "1st_Factory_Outdoor.png", id: "f1_od" },
             "屋上": { path: "1st_Factory_RF.png", id: "f1_rf" }
@@ -85,6 +86,11 @@ allConfigs.forEach(configSet => {
 // 3. NAVIGATION
 function showSection(sectionId) {
     const sections = ['home', 'map', 'list', 'personal', 'profile', 'settings'];
+    
+    // 1. CLOSE THE PANEL ON EVERY NAVIGATION
+    closeKaizenSidePanel(); 
+    clearTempMarker();
+
     sections.forEach(s => {
         const content = document.getElementById('content-' + s);
         const link = document.getElementById('link-' + s);
@@ -150,7 +156,7 @@ function initMap() {
 
         const fullTreeData = [
             { label: '工場エリア (Factories)', children: buildTreeBranch(factoryConfig) },
-            { label: '事務・倉庫 (Office & Others)', children: buildTreeBranch(office_othersConfig) }
+            { label: '事務・倉庫 (Office & Warehouse)', children: buildTreeBranch(office_othersConfig) }
         ];
 
         L.control.layers.tree(fullTreeData, null, { 
@@ -158,16 +164,44 @@ function initMap() {
             position: 'topleft' 
         }).addTo(map);
 
-        map.on('baselayerchange', function(e) {
-            const floorId = Object.keys(markers).find(id => e.layer.hasLayer(markers[id]));
-            if (floorId) activeMarkerLayer = markers[floorId];
-            
-            const labelElement = document.getElementById('active-floor-name');
-            if (labelElement && e.name) labelElement.innerText = e.name;
-            
-            // Cleanup temp UI on floor change
-            clearTempMarker();
-        });
+        /* --- REPLACE YOUR OLD map.on('baselayerchange'...) WITH THIS --- */
+         map.on('baselayerchange', function(e) {
+    // 1. Identify which marker layer group to make active
+    const floorId = Object.keys(markers).find(id => e.layer.hasLayer(markers[id]));
+    if (floorId) activeMarkerLayer = markers[floorId];
+    
+    // 2. Determine the Building and Floor Name from your Configs
+    let foundBuilding = "";
+    let foundFloor = "";
+
+    const searchConfigs = [factoryConfig, office_othersConfig];
+    
+    searchConfigs.forEach(configSet => {
+        for (const bName in configSet) {
+            const floors = configSet[bName].floors;
+            for (const fName in floors) {
+                // If the ID matches (e.g., 'f1_1f'), grab the actual keys
+                if (floors[fName].id === floorId) {
+                    foundBuilding = bName; // e.g., "第一工場"
+                    foundFloor = fName;    // e.g., "1階"
+                }
+            }
+        }
+    });
+
+    // 3. Update the UI Label
+    // If we found a match in our config, use those names. 
+    // Otherwise, fallback to the event name.
+    if (foundBuilding && foundFloor) {
+        updateFloorLabel(foundBuilding, foundFloor);
+    } else if (e.name) {
+        const labelElement = document.getElementById('active-floor-name');
+        if (labelElement) labelElement.innerText = e.name;
+    }
+    
+    // 4. Cleanup UI
+    clearTempMarker();
+});
 
         map.fitBounds(bounds);
 
@@ -379,6 +413,251 @@ function addToLists(title, category, desc, id) {
     </tr>`;
     if(tableBody) tableBody.insertAdjacentHTML('afterbegin', row);
 }
+
+// Function to show the panel
+// --- UNIFIED PANEL LOGIC ---
+window.openKaizenSidePanel = function() {
+    const panel = document.getElementById('kaizen-side-panel');
+    const overlay = document.getElementById('side-panel-overlay');
+    
+    if (panel) {
+        panel.classList.remove('hidden');
+        updateFormDate(); 
+        // Small delay to trigger CSS transition
+        setTimeout(() => { 
+            panel.style.transform = 'translateX(0)'; 
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('opacity-100');
+            }
+        }, 10);
+    }
+};
+
+window.closeKaizenSidePanel = function() {
+    const panel = document.getElementById('kaizen-side-panel');
+    const overlay = document.getElementById('side-panel-overlay');
+    
+    if (panel) {
+        panel.style.transform = 'translateX(100%)';
+        panel.classList.remove('active-global'); // Clear the bypass flag
+    }
+
+    if (overlay) {
+        overlay.classList.remove('opacity-100');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+    }
+    
+    // Hide panel completely after animation
+    setTimeout(() => {
+        if (panel) panel.classList.add('hidden');
+        // Clear inputs
+        const fields = ['kaizen-title', 'kaizen-description'];
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+    }, 300);
+};
+
+// 8. DASHBOARD CLOCK
+function updateDashboardClock() {
+    const clockElement = document.getElementById('dashboard-clock'); // Add this ID in your HTML
+    if (!clockElement) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    clockElement.innerText = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+}
+
+// Start the clock interval
+setInterval(updateDashboardClock, 1000);
+
+// 9. NEW REPORT BUTTON LOGIC
+window.startNewReport = function() {
+    // 9.1. Switch to map section
+    showSection('map');
+    
+    // 9.2. Clear any old data
+    clearTempMarker(); 
+    
+    // 9.3. Optional: Show a small toast or alert to guide the user
+    // You could use the existing map-bottom-prompt but change the text
+    const prompt = document.getElementById('map-bottom-prompt');
+    if (prompt) {
+        prompt.classList.remove('hidden');
+        prompt.innerHTML = `<div class="flex items-center gap-2">
+            <i class="fa-solid fa-location-dot animate-bounce"></i>
+            <span>マップ上をクリックして場所を選択してください</span>
+        </div>`;
+        prompt.style.transform = 'translate(-50%, 0)';
+    }
+};
+
+window.openGlobalNewForm = function() {
+        
+    // 1. Open the side panel immediately
+    const panel = document.getElementById('kaizen-side-panel');
+    if (panel) {
+        panel.classList.remove('hidden');
+        panel.classList.add('active-global'); // Temporary flag to prevent auto-close
+        updateFormDate(); // Set current date
+        
+        setTimeout(() => { 
+            panel.style.transform = 'translateX(0)'; 
+        }, 50);
+    }
+
+    // 2. Update the coordinate display to show it's pending
+    const coordDisplay = document.getElementById('display-coords');
+    if(coordDisplay) {
+        coordDisplay.innerText = "マップ上で場所を選択してください (Select location on map)";
+        coordDisplay.classList.add('text-amber-500', 'animate-pulse');
+    }
+};
+
+// cascading selector 
+// Add event listeners to the new dropdowns
+document.getElementById('select-main-area').addEventListener('change', function(e) {
+    const buildingSelect = document.getElementById('select-building');
+    const floorSelect = document.getElementById('select-floor');
+    const area = e.target.value;
+
+    // Reset children
+    buildingSelect.innerHTML = '<option value="">選択してください</option>';
+    buildingSelect.disabled = !area;
+    buildingSelect.classList.toggle('opacity-50', !area);
+    floorSelect.disabled = true;
+    floorSelect.classList.add('opacity-50');
+
+    const configSource = area === 'factory' ? factoryConfig : office_othersConfig;
+
+    for (const building in configSource) {
+        const opt = document.createElement('option');
+        opt.value = building;
+        opt.textContent = building;
+        buildingSelect.appendChild(opt);
+    }
+});
+
+// mini-map
+document.getElementById('select-floor').addEventListener('change', function(e) {
+    const floorId = e.target.value;
+    if (!floorId) return;
+
+    // 1. Find the image path from your configs
+    let imgPath = "";
+    const searchConfigs = [factoryConfig, office_othersConfig];
+    
+    searchConfigs.forEach(cfg => {
+        for (const b in cfg) {
+            for (const f in cfg[b].floors) {
+                if (cfg[b].floors[f].id === floorId) {
+                    imgPath = `/static/resource/Company Blueprints/${cfg[b].folder}/${cfg[b].floors[f].path}`;
+                }
+            }
+        }
+    });
+
+    if (!imgPath) return;
+
+    // 2. Update the mini-map preview with the "Zoom-in" overlay
+    const miniMapContainer = document.getElementById('sync-mini-map');
+    miniMapContainer.innerHTML = `
+        <div class="group relative w-full h-full cursor-zoom-in" id="mini-map-trigger">
+            <img src="${imgPath}" class="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity">
+            <div class="absolute inset-0 flex items-center justify-center bg-black/5 group-hover:bg-transparent transition-colors">
+                <span class="bg-white/90 px-3 py-1 rounded-full text-[10px] font-bold text-blue-600 shadow-md border border-blue-100">
+                   <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> マップを拡大してピン留め
+                </span>
+            </div>
+            <!-- This is the pin that will appear AFTER you select it in the lightbox -->
+            <div id="mini-pin" class="absolute hidden text-red-600 pointer-events-none z-10">
+                <i class="fa-solid fa-location-dot text-2xl"></i>
+            </div>
+        </div>
+    `;
+
+    // 3. Link the click to the Lightbox (The big modal)
+    document.getElementById('mini-map-trigger').onclick = function() {
+        openMapLightbox(imgPath, floorId);
+    };
+});
+
+document.getElementById('select-building').addEventListener('change', function(e) {
+    const floorSelect = document.getElementById('select-floor');
+    const area = document.getElementById('select-main-area').value;
+    const building = e.target.value;
+
+    floorSelect.innerHTML = '<option value="">階を選択</option>';
+    floorSelect.disabled = !building;
+    floorSelect.classList.toggle('opacity-50', !building);
+
+    const configSource = area === 'factory' ? factoryConfig : office_othersConfig;
+    const floors = configSource[building].floors;
+
+    for (const floorName in floors) {
+        const opt = document.createElement('option');
+        opt.value = floors[floorName].id; // Use the ID (e.g., f1_1f)
+        opt.textContent = floorName;
+        floorSelect.appendChild(opt);
+    }
+});
+
+window.openMapLightbox = function(path, floorId) {
+    const lightbox = document.getElementById('map-lightbox');
+    const img = document.getElementById('lightbox-img');
+    const pin = document.getElementById('lightbox-pin');
+
+    img.src = path;
+    pin.classList.add('hidden'); // Reset pin for new open
+
+    lightbox.classList.remove('hidden');
+    setTimeout(() => lightbox.classList.add('opacity-100'), 10);
+
+    // Pin logic inside the big view
+    img.onclick = function(ev) {
+        const rect = img.getBoundingClientRect();
+        tempRelX = (ev.clientX - rect.left) / rect.width;
+        tempRelY = (ev.clientY - rect.top) / rect.height;
+
+        pin.style.left = `${tempRelX * 100}%`;
+        pin.style.top = `${tempRelY * 100}%`;
+        pin.style.transform = "translate(-50%, -100%)"; // Anchor at bottom of pin
+        pin.classList.remove('hidden');
+    };
+};
+
+// This function is called when the user clicks "Confirm Location" in the lightbox
+window.confirmLightboxLocation = function() {
+    if (!tempRelX) return alert("場所を選択してください");
+
+    // Sync back to the mini-map preview
+    const miniPin = document.getElementById('mini-pin');
+    if (miniPin) {
+        miniPin.style.left = `${tempRelX * 100}%`;
+        miniPin.style.top = `${tempRelY * 100}%`;
+        miniPin.style.transform = "translate(-50%, -100%)";
+        miniPin.classList.remove('hidden');
+    }
+
+    // Save actual coords for final submission
+    tempCoords = { relX: tempRelX, relY: tempRelY };
+    
+    closeMapLightbox();
+};
+
+window.closeMapLightbox = () => {
+    const lightbox = document.getElementById('map-lightbox');
+    lightbox.classList.remove('opacity-100');
+    setTimeout(() => lightbox.classList.add('hidden'), 300);
+};
 
 window.toggleUserMenu = () => document.getElementById('user-dropdown').classList.toggle('hidden');
 
