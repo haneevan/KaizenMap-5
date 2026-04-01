@@ -94,7 +94,8 @@ input:focus {
 #kaizen-side-panel {
     transition: transform 0.3s ease-in-out;
     transform: translateX(100%);
-    z-index: 6000 !important; /* Ensure panel is above everything */
+    z-index: 5000 !important; /* Ensure panel is above everything */ 
+    /*update, it bellow the lightbox map now*/
 }
 
 .form-select-custom {
@@ -145,6 +146,20 @@ input:focus {
 
 .leaflet-popup-content button:hover {
     background-color: #1d4ed8;
+}
+
+/* Ensure dropdowns look consistent whether enabled or disabled */
+#select-building, #select-floor {
+    color: #1e293b !important; /* Slate-800 to match your UI */
+    background-color: #ffffff;
+    opacity: 1;
+}
+
+/* Optional: Add a subtle visual cue for when they are truly disabled */
+#select-building:disabled, #select-floor:disabled {
+    color: #94a3b8 !important; /* Slate-400 for a true "locked" look */
+    background-color: #f8fafc;
+    cursor: not-allowed;
 }
 
 /* --- 6. LEAFLET TREE & LAYER CONTROLS --- */
