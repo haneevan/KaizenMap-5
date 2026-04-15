@@ -226,19 +226,33 @@ function initMap() {
 }
 
 // --- 4. FORM LOGIC ---
+// --- Scenario #1: From Map Click to Form ---
 window.openFullForm = function(event) {
     if (event) event.stopPropagation();
-    const prompt = document.getElementById('map-bottom-prompt');
-    if(prompt) {
-        prompt.classList.add('hidden');
-        prompt.style.transform = 'translate(-50%, 200%)';
+    
+    // 1. Identify which floor is currently active on the Leaflet Map
+    let activeFloorId = "";
+    for (const id in markers) {
+        if (map.hasLayer(markers[id])) {
+            activeFloorId = id;
+            break;
+        }
     }
-    if (tempMarker) tempMarker.setIcon(new L.Icon.Default());
+
+    // 2. Open the side panel
     openKaizenSidePanel();
 
+    // 3. Auto-select the dropdowns based on the active map
+    if (activeFloorId) {
+        syncDropdownsToFloor(activeFloorId);
+    }
+
+    // 4. Update the visual coordinates label
     const coordDisplay = document.getElementById('display-coords');
     if(coordDisplay && tempCoords) {
-        coordDisplay.innerText = `Y: ${tempCoords.lat.toFixed(1)}, X: ${tempCoords.lng.toFixed(1)}`;
+        coordDisplay.innerText = "Location Set via Map Click";
+        coordDisplay.classList.remove('text-amber-500', 'animate-pulse');
+        coordDisplay.classList.add('text-green-600');
     }
 };
 
@@ -247,11 +261,15 @@ window.submitKaizenForm = function() {
     const categoryEl = document.querySelector('input[name="kubun"]:checked');
     const category = categoryEl ? categoryEl.value : "others";
     const desc = document.getElementById('kaizen-description').value;
+    const selectedFloorId = document.getElementById('select-floor').value;
     
     if (!title || !desc) return alert("件名と内容は必須です。");
+    if (!tempCoords) return alert("場所をピン留めしてください。");
 
-    if (activeMarkerLayer && tempCoords) {
-        const m = L.marker(tempCoords).addTo(activeMarkerLayer);
+    let targetLayer = selectedFloorId ? markers[selectedFloorId] : activeMarkerLayer;
+
+    if (targetLayer && tempCoords) {
+        const m = L.marker(tempCoords).addTo(targetLayer);
         const canEdit = (currentUser.role === 'admin' || currentUser.id === "USR001");
 
         m.bindPopup(`
@@ -264,11 +282,25 @@ window.submitKaizenForm = function() {
             </div>
         `);
 
-        m.on('click', (e) => { L.DomEvent.stopPropagation(e); clearTempMarker(); });
-        addToLists(title, category, desc, m._leaflet_id);
+        m.on('click', (e) => { 
+            L.DomEvent.stopPropagation(e); 
+            clearTempMarker(); 
+        });
+
+        // If addToLists is defined elsewhere, call it
+        if (typeof addToLists === "function") {
+            addToLists(title, category, desc, m._leaflet_id);
+        }
+
         if (tempMarker) map.removeLayer(tempMarker);
         tempMarker = null;
-        closeKaizenSidePanel(); 
+
+        // --- SUCCESSFUL SUBMISSION UI CLEANUP ---
+        alert("改善提案を登録しました！");
+        window.closeKaizenSidePanel(); // Call the closing function
+        
+    } else {
+        alert("エラー: 投稿先の階層が見つかりません。");
     }
 };
 
@@ -371,29 +403,47 @@ window.openMapLightbox = function(path, floorId) {
     const lightbox = document.getElementById('map-lightbox');
     const img = document.getElementById('lightbox-img');
     const viewport = document.getElementById('lightbox-viewport');
+    const pin = document.getElementById('lightbox-pin');
     
     if (!img || !viewport) return;
 
     // 1. Set the image source
     img.src = path;
     
-    // 2. Reset scale
+    // 2. Reset scale and transformation for a clean start
     scale = 1;
 
-    // 3. Wait for the image to load to get its dimensions, then center it
+    // 3. Handle image loading and pin placement
     img.onload = function() {
+        // Center the image in the viewport
         translateX = (viewport.offsetWidth - img.offsetWidth) / 2;
         translateY = (viewport.offsetHeight - img.offsetHeight) / 2;
         updateTransform();
+
+        // SCENARIO #1 FIX: If a location is already set, show the pin in the lightbox
+        if (tempCoords) {
+            // Convert existing coordinates back to relative ratios
+            tempRelX = tempCoords.lng / 2250;
+            tempRelY = 1 - (tempCoords.lat / 1500);
+
+            // Calculate exact pixel position on the natural image size
+            const pixelX = tempRelX * img.offsetWidth;
+            const pixelY = tempRelY * img.offsetHeight;
+
+            if (pin) {
+                pin.style.left = `${pixelX}px`;
+                pin.style.top = `${pixelY}px`;
+                pin.classList.remove('hidden');
+            }
+        } else {
+            // If no location set, ensure the pin is hidden
+            if (pin) pin.classList.add('hidden');
+            tempRelX = 0; 
+            tempRelY = 0;
+        }
     };
 
-    // 4. Reset pin state
-    tempRelX = 0; 
-    tempRelY = 0;
-    const pin = document.getElementById('lightbox-pin');
-    if (pin) pin.classList.add('hidden');
-
-    // 5. Show lightbox
+    // 4. Show lightbox with transition
     lightbox.classList.remove('hidden');
     setTimeout(() => lightbox.classList.add('opacity-100'), 10);
 };
@@ -419,25 +469,34 @@ window.resetLightboxView = function() {
 window.confirmLightboxLocation = function() {
     const pin = document.getElementById('lightbox-pin');
     
-    // Check if the pin is currently hidden
     if (!pin || pin.classList.contains('hidden')) {
-        alert("場所をピン留めしてください (Please drop a pin first)");
+        alert("場所をピン留めしてください");
         return;
     }
 
+    // 1. Calculate Relative Percentages (Auto-scale)
+    // We use the tempRelX/Y already captured during the lightbox click
+    const percentX = tempRelX * 100;
+    const percentY = tempRelY * 100;
+
+    // 2. Apply to Mini-Pin
     const miniPin = document.getElementById('mini-pin');
     if (miniPin) {
-        miniPin.style.left = `${tempRelX * 100}%`;
-        miniPin.style.top = `${tempRelY * 100}%`;
+        // We use absolute percentage positioning so it scales with the container
+        miniPin.style.left = `${percentX}%`;
+        miniPin.style.top = `${percentY}%`;
+        // Use translate to ensure the TIP of the pin is the anchor point
+        miniPin.style.transform = 'translate(-50%, -100%)';
         miniPin.classList.remove('hidden');
     }
 
-    // Convert to Leaflet Simple CRS Coords for the final submission
+    // 3. Keep your existing coordinate conversion for the main map
     tempCoords = { lat: (1 - tempRelY) * 1500, lng: tempRelX * 2250 };
     
+    // UI Feedback
     const coordDisplay = document.getElementById('display-coords');
     if(coordDisplay) {
-        coordDisplay.innerText = "Location Set via Map";
+        coordDisplay.innerText = "Location Set";
         coordDisplay.classList.remove('animate-pulse', 'text-amber-500');
         coordDisplay.classList.add('text-green-600');
     }
@@ -479,12 +538,35 @@ window.openKaizenSidePanel = function() {
 window.closeKaizenSidePanel = function() {
     const panel = document.getElementById('kaizen-side-panel');
     const overlay = document.getElementById('side-panel-overlay');
-    if (panel) panel.style.transform = 'translateX(100%)';
-    if (overlay) { overlay.classList.remove('opacity-100'); setTimeout(() => overlay.classList.add('hidden'), 300); }
-    setTimeout(() => { 
-        if (panel) panel.classList.add('hidden');
-        ['kaizen-title', 'kaizen-description'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
-    }, 300);
+    
+    if (panel) {
+        // 1. Start the animation
+        panel.style.transform = 'translateX(100%)';
+        
+        if (overlay) {
+            overlay.classList.remove('opacity-100');
+            // Hide overlay after transition
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        // 2. Clear inputs immediately so they don't "flicker" next time it opens
+        const titleInput = document.getElementById('kaizen-title');
+        const descInput = document.getElementById('kaizen-description');
+        if (titleInput) titleInput.value = '';
+        if (descInput) descInput.value = '';
+
+        // 3. Complete the hiding process
+        setTimeout(() => { 
+            panel.classList.add('hidden');
+            // Reset the coordinate display text
+            const coordDisplay = document.getElementById('display-coords');
+            if(coordDisplay) {
+                coordDisplay.innerText = "場所を選択してください";
+                coordDisplay.classList.remove('text-green-600');
+                coordDisplay.classList.add('text-amber-500', 'animate-pulse');
+            }
+        }, 300);
+    }
 };
 
 function updateFloorLabel(building, floor) {
@@ -506,13 +588,76 @@ function updateDashboardClock() {
     clockElement.innerText = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 }
 
+function syncDropdownsToFloor(floorId) {
+    const mainAreaSel = document.getElementById('select-main-area');
+    const bSel = document.getElementById('select-building');
+    const fSel = document.getElementById('select-floor');
+
+    // Find the data in our config
+    for (const areaKey of ['factory', 'office']) {
+        const config = (areaKey === 'factory' ? factoryConfig : office_othersConfig);
+        for (const bName in config) {
+            for (const fName in config[bName].floors) {
+                if (config[bName].floors[fName].id === floorId) {
+                    // Set Main Area
+                    mainAreaSel.value = areaKey;
+                    mainAreaSel.dispatchEvent(new Event('change')); // Trigger building list populate
+
+                    // Set Building
+                    bSel.value = bName;
+                    bSel.dispatchEvent(new Event('change')); // Trigger floor list populate
+
+                    // Set Floor
+                    fSel.value = floorId;
+                    fSel.dispatchEvent(new Event('change')); // Trigger mini-map generation
+                    
+                    // Logic for Scenario #1: Show the mini-pin immediately
+                    setTimeout(() => {
+                        const miniPin = document.getElementById('mini-pin');
+                        if (miniPin && tempCoords) {
+                            // Reverse the Leaflet coords (0-2250, 0-1500) back to 0-100%
+                            const relX = (tempCoords.lng / 2250) * 100;
+                            const relY = (1 - (tempCoords.lat / 1500)) * 100;
+                            miniPin.style.left = `${relX}%`;
+                            miniPin.style.top = `${relY}%`;
+                            miniPin.style.transform = 'translate(-50%, -100%)';
+                            miniPin.classList.remove('hidden');
+                        }
+                    }, 150);
+                    return;
+                }
+            }
+        }
+    }
+}
+
 // --- 7. GLOBAL ACTIONS ---
+// --- Scenario #2: Global New Form (Blank Start) ---
+// Locate this function in your script (~line 470) and update it:
 window.openGlobalNewForm = function() {
+    clearTempMarker(); // This sets tempCoords to null already
+    
+    // Explicitly reset the mini-map to the "Empty State" (Screenshot #1)
+    const miniMap = document.getElementById('sync-mini-map');
+    if (miniMap) {
+        miniMap.innerHTML = `
+            <div class="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-4 border-2 border-dashed border-slate-200 rounded-lg">
+                場所を選択するとマップが表示されます
+            </div>`;
+    }
+
     openKaizenSidePanel();
+    
+    // Reset dropdowns
+    document.getElementById('select-main-area').value = "";
+    document.getElementById('select-building').disabled = true;
+    document.getElementById('select-floor').disabled = true;
+    
     const coordDisplay = document.getElementById('display-coords');
     if(coordDisplay) {
-        coordDisplay.innerText = "マップ上で場所を選択してください";
+        coordDisplay.innerText = "場所を選択してください";
         coordDisplay.classList.add('text-amber-500', 'animate-pulse');
+        coordDisplay.classList.remove('text-green-600');
     }
 };
 
@@ -566,28 +711,51 @@ document.getElementById('select-building')?.addEventListener('change', function(
     }
 });
 
+
 document.getElementById('select-floor')?.addEventListener('change', function(e) {
     const floorId = e.target.value;
     if (!floorId) return;
+    
     let imgPath = "";
     [factoryConfig, office_othersConfig].forEach(cfg => {
         for (const b in cfg) {
             for (const f in cfg[b].floors) {
-                if (cfg[b].floors[f].id === floorId) imgPath = `/static/resource/Company Blueprints/${cfg[b].folder}/${cfg[b].floors[f].path}`;
+                if (cfg[b].floors[f].id === floorId) {
+                    imgPath = `/static/resource/Company Blueprints/${cfg[b].folder}/${cfg[b].floors[f].path}`;
+                }
             }
         }
     });
+
     const miniMap = document.getElementById('sync-mini-map');
     if (miniMap) {
+        let pinClass = 'hidden';
+        let pinStyle = '';
+
+        if (tempCoords) {
+            const relX = (tempCoords.lng / 2250) * 100;
+            const relY = (1 - (tempCoords.lat / 1500)) * 100;
+            pinStyle = `left: ${relX}%; top: ${relY}%; transform: translate(-50%, -100%);`;
+            pinClass = ''; 
+        }
+
+        // KEY CHANGE: We wrap the img and pin in a "relative inline-block" div.
+        // This ensures "100% width" for the pin is exactly the width of the blueprint.
         miniMap.innerHTML = `
-            <div class="group relative w-full h-full cursor-zoom-in" onclick="openMapLightbox('${imgPath}', '${floorId}')">
-                <img src="${imgPath}" class="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity">
-                <div class="absolute inset-0 flex items-center justify-center bg-black/5">
-                    <span class="bg-white/90 px-3 py-1 rounded-full text-[10px] font-bold text-blue-600 shadow-md">
-                       <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> マップを拡大してピン留め
-                    </span>
+            <div class="w-full h-full flex items-center justify-center p-2">
+                <div class="relative inline-block cursor-zoom-in group" onclick="openMapLightbox('${imgPath}', '${floorId}')">
+                    <img src="${imgPath}" class="max-w-full max-h-full block opacity-80 group-hover:opacity-100 transition-opacity">
+                    
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span class="bg-white/90 px-3 py-1 rounded-full text-[10px] font-bold text-blue-600 shadow-md">
+                            <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> マップを拡大してピン留め
+                        </span>
+                    </div>
+
+                    <div id="mini-pin" class="absolute ${pinClass} text-blue-600 pointer-events-none z-10" style="${pinStyle}">
+                        <i class="fa-solid fa-location-dot text-2xl drop-shadow-md"></i>
+                    </div>
                 </div>
-                <div id="mini-pin" class="absolute hidden text-red-600 pointer-events-none z-10"><i class="fa-solid fa-location-dot text-2xl"></i></div>
             </div>`;
     }
 });
