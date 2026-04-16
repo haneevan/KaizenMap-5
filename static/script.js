@@ -12,6 +12,7 @@ let isDragging = false;
 let startX, startY;
 let translateX = 0;
 let translateY = 0;
+let improvementCache = [];
 
 // Mock User Data
 const currentUser = { id: "USR001", role: "admin" }; 
@@ -107,9 +108,14 @@ function showSection(sectionId) {
     const activeLink = document.getElementById('link-' + sectionId);
     if (activeLink) activeLink.classList.add('nav-active');
 
+    // --- ADD THIS PART ---
     if (sectionId === 'map') {
         initMap();
         setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+    } else if (sectionId === 'list') {
+        renderImprovementList(); // Refresh the table every time the list is opened
+    } else if (sectionId === 'personal') {
+        renderPersonalKaizenList(); // Refresh personal list every time the section is opened
     }
 }
 
@@ -226,11 +232,9 @@ function initMap() {
 }
 
 // --- 4. FORM LOGIC ---
-// --- Scenario #1: From Map Click to Form ---
 window.openFullForm = function(event) {
     if (event) event.stopPropagation();
     
-    // 1. Identify which floor is currently active on the Leaflet Map
     let activeFloorId = "";
     for (const id in markers) {
         if (map.hasLayer(markers[id])) {
@@ -239,15 +243,12 @@ window.openFullForm = function(event) {
         }
     }
 
-    // 2. Open the side panel
     openKaizenSidePanel();
 
-    // 3. Auto-select the dropdowns based on the active map
     if (activeFloorId) {
         syncDropdownsToFloor(activeFloorId);
     }
 
-    // 4. Update the visual coordinates label
     const coordDisplay = document.getElementById('display-coords');
     if(coordDisplay && tempCoords) {
         coordDisplay.innerText = "Location Set via Map Click";
@@ -258,83 +259,152 @@ window.openFullForm = function(event) {
 
 window.submitKaizenForm = function() {
     const title = document.getElementById('kaizen-title').value;
+    const desc = document.getElementById('kaizen-description').value;
+    const method = document.getElementById('kaizen-method')?.value || "";
+    const benefits = document.getElementById('kaizen-benefits')?.value || "";
     const categoryEl = document.querySelector('input[name="kubun"]:checked');
     const category = categoryEl ? categoryEl.value : "others";
-    const desc = document.getElementById('kaizen-description').value;
     const selectedFloorId = document.getElementById('select-floor').value;
     
+    // For images: checking if an image was uploaded (assuming a preview img exists)
+    const photoSrc = document.getElementById('form-photo-preview')?.src;
+
     if (!title || !desc) return alert("件名と内容は必須です。");
     if (!tempCoords) return alert("場所をピン留めしてください。");
 
     let targetLayer = selectedFloorId ? markers[selectedFloorId] : activeMarkerLayer;
 
     if (targetLayer && tempCoords) {
+        // Create the entry object with all form data synced
+        const newEntry = {
+            id: Date.now(), // Unique ID
+            date: new Date().toLocaleDateString(),
+            user: "System Admin", // Replace with session data if available
+            title: title,
+            category: category,
+            description: desc,
+            method: method,
+            benefits: benefits,
+            image: photoSrc && !photoSrc.includes('base64') ? photoSrc : null,
+            floorId: selectedFloorId || "Main Map",
+            coords: tempCoords
+        };
+
         const m = L.marker(tempCoords).addTo(targetLayer);
-        const canEdit = (currentUser.role === 'admin' || currentUser.id === "USR001");
-
-        m.bindPopup(`
-            <div class="p-1 text-left min-w-[150px]">
-                <b class="text-blue-600 text-sm">${title}</b><br>
-                <span class="text-[10px] text-slate-400 font-bold">${category}</span>
-                <p class="text-xs mt-1 text-slate-600">${desc}</p>
-                <hr class="my-2 border-slate-100">
-                ${canEdit ? `<button onclick="deleteMarker(${m._leaflet_id})" class="text-[9px] text-red-400 font-bold uppercase">Remove Pin</button>` : `<span class="text-[9px] text-slate-300">View Only</span>`}
-            </div>
-        `);
-
-        m.on('click', (e) => { 
-            L.DomEvent.stopPropagation(e); 
-            clearTempMarker(); 
+        
+        // Attach the click event to open the modal with THIS specific data
+        m.on('click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            openViewModal(newEntry);
         });
 
-        // If addToLists is defined elsewhere, call it
-        if (typeof addToLists === "function") {
-            addToLists(title, category, desc, m._leaflet_id);
-        }
-
-        if (tempMarker) map.removeLayer(tempMarker);
-        tempMarker = null;
-
-        // --- SUCCESSFUL SUBMISSION UI CLEANUP ---
+        improvementCache.push(newEntry);
+        renderImprovementList();
+        renderPersonalKaizenList(); // Sync personal list
         alert("改善提案を登録しました！");
-        window.closeKaizenSidePanel(); // Call the closing function
-        
-    } else {
-        alert("エラー: 投稿先の階層が見つかりません。");
+        window.closeKaizenSidePanel();
     }
 };
 
+function renderImprovementList() {
+    const listBody = document.getElementById('improvement-list-body');
+    if (!listBody) return;
+
+    listBody.innerHTML = '';
+
+    if (improvementCache.length === 0) {
+        listBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">データがありません</td></tr>`;
+        return;
+    }
+
+    improvementCache.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = "border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer";
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+            <td class="p-4 text-xs text-slate-500">${item.date}</td>
+            <td class="p-4 text-sm font-bold text-slate-700">${item.title}</td>
+            <td class="p-4 text-xs text-slate-600">${item.user}</td>
+            <td class="p-4 text-xs text-slate-600 truncate max-w-[200px]">${item.description}</td>
+            <td class="p-4 text-xs"><span class="px-2 py-1 bg-blue-100 text-blue-600 rounded-full font-bold">${item.category}</span></td>
+            <td class="p-4 text-xs text-amber-500 font-bold">Pending</td>
+        `;
+        
+        // Click event to view/edit improvement details
+        row.addEventListener('click', function() {
+            openViewModal(item);
+        });
+        
+        listBody.appendChild(row);
+    });
+}
+
+// Render Personal Kaizen List - displays user's own contributions
+function renderPersonalKaizenList() {
+    const personalContainer = document.getElementById('personal-kaizen-list');
+    if (!personalContainer) return;
+
+    personalContainer.innerHTML = '';
+
+    if (improvementCache.length === 0) {
+        personalContainer.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400"><p>まだ改善提案がありません</p></div>`;
+        return;
+    }
+
+    improvementCache.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-all cursor-pointer group";
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <h3 class="font-bold text-slate-800 group-hover:text-blue-600 transition-colors flex-1">${item.title}</h3>
+                <span class="px-2 py-1 bg-blue-100 text-blue-600 rounded-full font-bold text-[10px]">${item.category}</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-3">${item.date} | ${item.floorId}</p>
+            <p class="text-sm text-slate-600 line-clamp-2 mb-3">${item.description}</p>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                <span class="text-xs text-amber-500 font-bold">Status: Pending</span>
+                <button onclick="event.stopPropagation(); openViewModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="text-blue-600 hover:text-blue-700 font-bold text-xs">
+                    詳細 &rarr;
+                </button>
+            </div>
+        `;
+        
+        // Click event to view details
+        card.addEventListener('click', function() {
+            openViewModal(item);
+        });
+        
+        personalContainer.appendChild(card);
+    });
+}
+
 // --- 5. LIGHTBOX INTERACTION (DRAG/ZOOM) ---
-const viewport = document.getElementById('lightbox-viewport');
-const container = document.getElementById('lightbox-container');
+function initLightbox() {
+    const viewport = document.getElementById('lightbox-viewport');
+    const container = document.getElementById('lightbox-container');
 
-if (viewport && container) {
+    if (!viewport || !container) return;
+
     viewport.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    
-    const zoomSpeed = 0.1;
-    const rect = viewport.getBoundingClientRect();
-    
-    // 1. Get mouse position relative to the viewport
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+        e.preventDefault();
+        const zoomSpeed = 0.1;
+        const rect = viewport.getBoundingClientRect();
+        
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-    // 2. Calculate point on the image (accounting for current translate/scale)
-    const imageX = (mouseX - translateX) / scale;
-    const imageY = (mouseY - translateY) / scale;
+        const imageX = (mouseX - translateX) / scale;
+        const imageY = (mouseY - translateY) / scale;
 
-    // 3. Determine new scale
-    const delta = e.deltaY < 0 ? 1.1 : 0.9; // Smooth multiplier
-    const newScale = Math.min(Math.max(scale * delta, 0.5), 5);
+        const delta = e.deltaY < 0 ? 1.1 : 0.9;
+        const newScale = Math.min(Math.max(scale * delta, 0.5), 5);
 
-    // 4. Calculate new translations to keep imageX/imageY under the cursor
-    translateX = mouseX - imageX * newScale;
-    translateY = mouseY - imageY * newScale;
-    
-    scale = newScale;
+        translateX = mouseX - imageX * newScale;
+        translateY = mouseY - imageY * newScale;
+        scale = newScale;
 
-    updateTransform();
-}, { passive: false });
+        updateTransform();
+    }, { passive: false });
 
     viewport.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
@@ -357,45 +427,42 @@ if (viewport && container) {
     });
 
     viewport.onclick = function(e) {
-    // Prevent accidental pins while dragging the map
-    if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) return; 
+        if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) return; 
 
-    const pin = document.getElementById('lightbox-pin');
-    
-    // TOGGLE LOGIC: If pin is already visible, remove it (Reset)
-    if (pin && !pin.classList.contains('hidden')) {
-        pin.classList.add('hidden');
-        tempRelX = 0;
-        tempRelY = 0;
+        const pin = document.getElementById('lightbox-pin');
         
-        // Reset the coordinate display in the form
-        const coordDisplay = document.getElementById('display-coords');
-        if(coordDisplay) {
-            coordDisplay.innerText = "マップ上で場所を選択してください";
-            coordDisplay.classList.add('text-amber-500', 'animate-pulse');
-            coordDisplay.classList.remove('text-green-600');
+        if (pin && !pin.classList.contains('hidden')) {
+            pin.classList.add('hidden');
+            tempRelX = 0;
+            tempRelY = 0;
+            
+            const coordDisplay = document.getElementById('display-coords');
+            if(coordDisplay) {
+                coordDisplay.innerText = "マップ上で場所を選択してください";
+                coordDisplay.classList.add('text-amber-500', 'animate-pulse');
+                coordDisplay.classList.remove('text-green-600');
+            }
+            return;
         }
-        return; // Exit here so we don't immediately re-pin
-    }
 
-    // PIN LOGIC: If no pin, place a new one
-    const rect = container.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / scale;
-    const y = (e.clientY - rect.top) / scale;
+        const rect = container.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / scale;
+        const y = (e.clientY - rect.top) / scale;
 
-    if (pin) {
-        pin.style.left = `${x}px`;
-        pin.style.top = `${y}px`;
-        pin.classList.remove('hidden');
-    }
+        if (pin) {
+            pin.style.left = `${x}px`;
+            pin.style.top = `${y}px`;
+            pin.classList.remove('hidden');
+        }
 
-    const img = document.getElementById('lightbox-img');
-    tempRelX = x / img.offsetWidth;
-    tempRelY = y / img.offsetHeight;
-};
+        const img = document.getElementById('lightbox-img');
+        tempRelX = x / img.offsetWidth;
+        tempRelY = y / img.offsetHeight;
+    };
 }
 
 function updateTransform() {
+    const container = document.getElementById('lightbox-container');
     if (container) container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 }
 
@@ -407,26 +474,18 @@ window.openMapLightbox = function(path, floorId) {
     
     if (!img || !viewport) return;
 
-    // 1. Set the image source
     img.src = path;
-    
-    // 2. Reset scale and transformation for a clean start
     scale = 1;
 
-    // 3. Handle image loading and pin placement
     img.onload = function() {
-        // Center the image in the viewport
         translateX = (viewport.offsetWidth - img.offsetWidth) / 2;
         translateY = (viewport.offsetHeight - img.offsetHeight) / 2;
         updateTransform();
 
-        // SCENARIO #1 FIX: If a location is already set, show the pin in the lightbox
         if (tempCoords) {
-            // Convert existing coordinates back to relative ratios
             tempRelX = tempCoords.lng / 2250;
             tempRelY = 1 - (tempCoords.lat / 1500);
 
-            // Calculate exact pixel position on the natural image size
             const pixelX = tempRelX * img.offsetWidth;
             const pixelY = tempRelY * img.offsetHeight;
 
@@ -436,14 +495,12 @@ window.openMapLightbox = function(path, floorId) {
                 pin.classList.remove('hidden');
             }
         } else {
-            // If no location set, ensure the pin is hidden
             if (pin) pin.classList.add('hidden');
             tempRelX = 0; 
             tempRelY = 0;
         }
     };
 
-    // 4. Show lightbox with transition
     lightbox.classList.remove('hidden');
     setTimeout(() => lightbox.classList.add('opacity-100'), 10);
 };
@@ -451,61 +508,49 @@ window.openMapLightbox = function(path, floorId) {
 window.resetLightboxView = function() {
     const vp = document.getElementById('lightbox-viewport');
     const img = document.getElementById('lightbox-img');
-    
     scale = 1;
-    
     if (vp && img) {
-        // Calculate the center offset
         translateX = (vp.offsetWidth - img.offsetWidth) / 2;
         translateY = (vp.offsetHeight - img.offsetHeight) / 2;
     } else {
         translateX = 0;
         translateY = 0;
     }
-
     updateTransform();
 };
 
 window.confirmLightboxLocation = function() {
     const pin = document.getElementById('lightbox-pin');
-    
     if (!pin || pin.classList.contains('hidden')) {
         alert("場所をピン留めしてください");
         return;
     }
 
-    // 1. Calculate Relative Percentages (Auto-scale)
-    // We use the tempRelX/Y already captured during the lightbox click
     const percentX = tempRelX * 100;
     const percentY = tempRelY * 100;
 
-    // 2. Apply to Mini-Pin
     const miniPin = document.getElementById('mini-pin');
     if (miniPin) {
-        // We use absolute percentage positioning so it scales with the container
         miniPin.style.left = `${percentX}%`;
         miniPin.style.top = `${percentY}%`;
-        // Use translate to ensure the TIP of the pin is the anchor point
         miniPin.style.transform = 'translate(-50%, -100%)';
         miniPin.classList.remove('hidden');
     }
 
-    // 3. Keep your existing coordinate conversion for the main map
     tempCoords = { lat: (1 - tempRelY) * 1500, lng: tempRelX * 2250 };
     
-    // UI Feedback
     const coordDisplay = document.getElementById('display-coords');
     if(coordDisplay) {
         coordDisplay.innerText = "Location Set";
         coordDisplay.classList.remove('animate-pulse', 'text-amber-500');
         coordDisplay.classList.add('text-green-600');
     }
-    
     window.closeMapLightbox();
 };
 
 window.closeMapLightbox = () => {
     const lightbox = document.getElementById('map-lightbox');
+    if (!lightbox) return;
     lightbox.classList.remove('opacity-100');
     setTimeout(() => lightbox.classList.add('hidden'), 300);
 };
@@ -530,7 +575,11 @@ window.openKaizenSidePanel = function() {
         updateFormDate(); 
         setTimeout(() => { 
             panel.style.transform = 'translateX(0)'; 
-            if (overlay) { overlay.classList.remove('hidden'); overlay.classList.add('opacity-100'); }
+            if (overlay) { 
+                overlay.classList.remove('hidden'); 
+                overlay.style.pointerEvents = 'auto'; // Ensure it can catch clicks to close
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            }
         }, 10);
     }
 };
@@ -540,25 +589,24 @@ window.closeKaizenSidePanel = function() {
     const overlay = document.getElementById('side-panel-overlay');
     
     if (panel) {
-        // 1. Start the animation
         panel.style.transform = 'translateX(100%)';
         
         if (overlay) {
             overlay.classList.remove('opacity-100');
-            // Hide overlay after transition
-            setTimeout(() => overlay.classList.add('hidden'), 300);
+            overlay.style.pointerEvents = 'none'; // STOP BLOCKING CLICKS IMMEDIATELY
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
         }
 
-        // 2. Clear inputs immediately so they don't "flicker" next time it opens
+        // Reset inputs
         const titleInput = document.getElementById('kaizen-title');
         const descInput = document.getElementById('kaizen-description');
         if (titleInput) titleInput.value = '';
         if (descInput) descInput.value = '';
 
-        // 3. Complete the hiding process
         setTimeout(() => { 
             panel.classList.add('hidden');
-            // Reset the coordinate display text
             const coordDisplay = document.getElementById('display-coords');
             if(coordDisplay) {
                 coordDisplay.innerText = "場所を選択してください";
@@ -593,29 +641,23 @@ function syncDropdownsToFloor(floorId) {
     const bSel = document.getElementById('select-building');
     const fSel = document.getElementById('select-floor');
 
-    // Find the data in our config
     for (const areaKey of ['factory', 'office']) {
         const config = (areaKey === 'factory' ? factoryConfig : office_othersConfig);
         for (const bName in config) {
             for (const fName in config[bName].floors) {
                 if (config[bName].floors[fName].id === floorId) {
-                    // Set Main Area
                     mainAreaSel.value = areaKey;
-                    mainAreaSel.dispatchEvent(new Event('change')); // Trigger building list populate
+                    mainAreaSel.dispatchEvent(new Event('change'));
 
-                    // Set Building
                     bSel.value = bName;
-                    bSel.dispatchEvent(new Event('change')); // Trigger floor list populate
+                    bSel.dispatchEvent(new Event('change'));
 
-                    // Set Floor
                     fSel.value = floorId;
-                    fSel.dispatchEvent(new Event('change')); // Trigger mini-map generation
+                    fSel.dispatchEvent(new Event('change'));
                     
-                    // Logic for Scenario #1: Show the mini-pin immediately
                     setTimeout(() => {
                         const miniPin = document.getElementById('mini-pin');
                         if (miniPin && tempCoords) {
-                            // Reverse the Leaflet coords (0-2250, 0-1500) back to 0-100%
                             const relX = (tempCoords.lng / 2250) * 100;
                             const relY = (1 - (tempCoords.lat / 1500)) * 100;
                             miniPin.style.left = `${relX}%`;
@@ -631,13 +673,103 @@ function syncDropdownsToFloor(floorId) {
     }
 }
 
-// --- 7. GLOBAL ACTIONS ---
-// --- Scenario #2: Global New Form (Blank Start) ---
-// Locate this function in your script (~line 470) and update it:
-window.openGlobalNewForm = function() {
-    clearTempMarker(); // This sets tempCoords to null already
+window.openImprovementDetails = function(data) {
+    // Open the side panel (the same one used for the form)
+    openKaizenSidePanel();
+
+    // Fill the fields with the "submitted" data
+    document.getElementById('kaizen-title').value = data.title;
+    document.getElementById('kaizen-description').value = data.description;
+    document.getElementById('select-floor').value = data.floorId;
+
+    // Set the category radio button
+    const categoryRadio = document.querySelector(`input[name="kubun"][value="${data.category}"]`);
+    if (categoryRadio) categoryRadio.checked = true;
+
+    // Change the panel title or button to "View/Edit" mode if needed
+    const submitBtn = document.querySelector('#kaizen-side-panel button[onclick="submitKaizenForm()"]');
+    if (submitBtn) {
+        submitBtn.innerText = "更新する (Update)";
+        // You would likely update the onclick here to a different edit function
+    }
+};
+
+// Function to open the View Modal
+window.openViewModal = function(data) {
+    const modal = document.getElementById('kaizen-view-modal');
+    if (!modal) return;
+
+    // Mapping Data to UI - Display all synced form data
+    document.getElementById('view-title').innerText = data.title || "No Title";
+    document.getElementById('view-user').innerText = data.user || "System Admin";
+    document.getElementById('view-date').innerText = data.date || "-";
+    document.getElementById('view-description').innerText = data.description || "No description provided.";
+    document.getElementById('view-method').innerText = data.method && data.method.trim() !== "" ? data.method : "改善案が未設定です";
+    document.getElementById('view-benefits').innerText = data.benefits && data.benefits.trim() !== "" ? data.benefits : "期待効果が未設定です";
+    document.getElementById('view-location').innerText = `Location: ${data.floorId || 'Unknown Area'}`;
     
-    // Explicitly reset the mini-map to the "Empty State" (Screenshot #1)
+    // Badge Color/Text based on classification
+    const badge = document.getElementById('view-badge');
+    if (badge) {
+        badge.innerText = data.category || "General";
+        // Optional: Change color based on category
+        badge.style.backgroundColor = data.category === 'safety' ? '#ef4444' : '#3b82f6';
+    }
+
+    // Handle Image
+    const imgContainer = document.getElementById('view-image-container');
+    const imgEl = document.getElementById('view-image');
+    if (data.image && data.image !== "") {
+        imgEl.src = data.image;
+        imgContainer.classList.remove('hidden');
+    } else {
+        imgContainer.classList.add('hidden');
+    }
+
+    // Show Modal properly
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.style.pointerEvents = 'auto';
+    }, 10);
+};
+
+window.closeViewModal = function() {
+    const modal = document.getElementById('kaizen-view-modal');
+    if (!modal) return;
+
+    modal.classList.remove('opacity-100');
+    modal.classList.remove('active');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none'; // Completely remove from the render tree
+    }, 300);
+};
+
+window.previewImage = function(event) {
+    const reader = new FileReader();
+    const preview = document.getElementById('form-photo-preview');
+    const placeholder = document.getElementById('upload-placeholder');
+
+    reader.onload = function() {
+        if (preview) {
+            preview.src = reader.result;
+            preview.classList.remove('hidden');
+            if (placeholder) placeholder.classList.add('hidden');
+        }
+    }
+    
+    if (event.target.files[0]) {
+        reader.readAsDataURL(event.target.files[0]);
+    }
+};
+
+// --- 7. GLOBAL ACTIONS ---
+window.openGlobalNewForm = function() {
+    clearTempMarker(); 
+    
     const miniMap = document.getElementById('sync-mini-map');
     if (miniMap) {
         miniMap.innerHTML = `
@@ -648,10 +780,23 @@ window.openGlobalNewForm = function() {
 
     openKaizenSidePanel();
     
-    // Reset dropdowns
-    document.getElementById('select-main-area').value = "";
-    document.getElementById('select-building').disabled = true;
-    document.getElementById('select-floor').disabled = true;
+    const areaSel = document.getElementById('select-main-area');
+    if (areaSel) {
+        areaSel.value = "";
+        areaSel.dispatchEvent(new Event('change'));
+    }
+    
+    // ALWAYS CLEAR PROPOSED METHOD - Empty for every new form generation
+    const methodInput = document.getElementById('kaizen-method');
+    if (methodInput) {
+        methodInput.value = "";
+    }
+    
+    // ALWAYS CLEAR BENEFITS - Empty for every new form generation
+    const benefitsInput = document.getElementById('kaizen-benefits');
+    if (benefitsInput) {
+        benefitsInput.value = "";
+    }
     
     const coordDisplay = document.getElementById('display-coords');
     if(coordDisplay) {
@@ -669,7 +814,6 @@ document.getElementById('select-main-area')?.addEventListener('change', function
     const fSel = document.getElementById('select-floor');
     const area = e.target.value;
 
-    // Reset Building Dropdown
     bSel.innerHTML = '<option value="" selected disabled>工場を選択 (Select Building)</option>';
     
     if (area) {
@@ -685,7 +829,6 @@ document.getElementById('select-main-area')?.addEventListener('change', function
         bSel.disabled = true;
     }
 
-    // Always lock the floor until a building is picked
     fSel.disabled = true;
     fSel.innerHTML = '<option value="">階を選択 (Select Floor)</option>';
 });
@@ -739,8 +882,6 @@ document.getElementById('select-floor')?.addEventListener('change', function(e) 
             pinClass = ''; 
         }
 
-        // KEY CHANGE: We wrap the img and pin in a "relative inline-block" div.
-        // This ensures "100% width" for the pin is exactly the width of the blueprint.
         miniMap.innerHTML = `
             <div class="w-full h-full flex items-center justify-center p-2">
                 <div class="relative inline-block cursor-zoom-in group" onclick="openMapLightbox('${imgPath}', '${floorId}')">
@@ -764,5 +905,6 @@ document.getElementById('select-floor')?.addEventListener('change', function(e) 
 // --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
     showSection('home');
+    initLightbox();
     setInterval(updateDashboardClock, 1000);
 });
