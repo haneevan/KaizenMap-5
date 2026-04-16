@@ -1,5 +1,5 @@
 /* --- 1. GLOBAL SETTINGS & FONTS --- */
-@import url('https://fonts.googleapis.com');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
 
 body {
     font-family: 'Noto Sans JP', sans-serif;
@@ -7,9 +7,8 @@ body {
     margin: 0;
 }
 
-/* --- 2. STRUCTURAL LAYERING (Z-INDEX HACK) --- */
-/* Everything here ensures the UI stays above the Map blueprints */
-
+/* --- 2. STRUCTURAL LAYERING (UI & MAP) --- */
+/* High-level UI elements */
 nav, .fixed, .sticky {
     z-index: 5000 !important;
 }
@@ -20,6 +19,7 @@ nav, .fixed, .sticky {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
+/* Base Map Layer */
 #kaizen-map {
     z-index: 1 !important;
 }
@@ -28,47 +28,57 @@ nav, .fixed, .sticky {
     z-index: 1 !important;
 }
 
+/* CRITICAL: Lift markers and interaction layers above blueprints */
+.leaflet-marker-pane {
+    z-index: 600 !important;
+}
+.leaflet-interaction-pane {
+    z-index: 700 !important;
+}
+
 .leaflet-control-container {
     z-index: 400 !important; 
 }
 
-/* --- 3. LOGIN PAGE SPECIFICS --- */
-body.login-bg {
-    animation: fadeIn 0.5s ease-out;
-    background-image: url('resource/PicIcon/office.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center; 
+/* --- 3. MODALS & PANELS --- */
+/* The Registration Side Panel */
+#kaizen-side-panel {
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(100%);
+    z-index: 5000 !important; 
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+/* The View/Detail Modal (Highest Layer) */
+#kaizen-view-modal {
+    z-index: 12000 !important; 
+    /* Remove display: flex from here */
+    pointer-events: none; /* Default to clicking through */
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+#kaizen-view-modal.active {
+    display: flex !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
 }
 
-.text-red-500 {
-    animation: shake 0.4s ease-in-out;
+#view-modal-container {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* --- 4. UI COMPONENTS & INTERACTION --- */
+/* Animation triggers for JS */
+.opacity-100 {
+    opacity: 1 !important;
+}
+
+/* --- 4. DASHBOARD & UI COMPONENTS --- */
 input:focus {
     outline: none;
-    border-color: transparent;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
     transition: box-shadow 0.2s ease;
 }
 
-/* Dashboard Card Scaling */
 .dashboard-card {
     @apply bg-white p-8 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md;
     min-height: 160px;
@@ -86,20 +96,9 @@ input:focus {
 }
 
 .nav-active {
-    background-color: #334155; /* slate-700 */
+    background-color: #334155;
     color: white !important;
-    border-left: 4px solid #3b82f6; /* Blue accent line */
-}
-
-#kaizen-side-panel {
-    transition: transform 0.3s ease-in-out;
-    transform: translateX(100%);
-    z-index: 5000 !important; /* Ensure panel is above everything */ 
-    /*update, it bellow the lightbox map now*/
-}
-
-.form-select-custom {
-    @apply w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all;
+    border-left: 4px solid #3b82f6;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -110,140 +109,19 @@ input:focus {
     border-radius: 10px;
 }
 
-/* --- 5. LEAFLET MAP CORE UI --- */
-
-/* Positioning */
-.leaflet-top.leaflet-right {
-    top: 10px; 
-}
-
-/* Popups */
+/* --- 5. LEAFLET POPUPS & MARKERS --- */
 .leaflet-popup-content-wrapper {
     background: rgba(255, 255, 255, 0.9) !important;
     backdrop-filter: blur(8px);
     border-radius: 12px;
-    border: 1px solid rgba(0,0,0,0.05);
 }
 
-.leaflet-popup-content {
-    margin: 12px;
-    line-height: 1.4;
-    font-family: 'Noto Sans JP', sans-serif;
+.leaflet-marker-icon {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    cursor: pointer !important;
+    pointer-events: auto !important; /* Ensures the pin catches the click */
 }
 
-.leaflet-popup-content button {
-    margin-top: 8px;
-    width: 100%;
-    background-color: #2563eb;
-    color: white;
-    padding: 6px 0;
-    border-radius: 6px;
-    font-weight: 600;
-    transition: background 0.2s;
-    border: none;
-    cursor: pointer;
-}
-
-.leaflet-popup-content button:hover {
-    background-color: #1d4ed8;
-}
-
-/* Ensure dropdowns look consistent whether enabled or disabled */
-#select-building, #select-floor {
-    color: #1e293b !important; /* Slate-800 to match your UI */
-    background-color: #ffffff;
-    opacity: 1;
-}
-
-/* Optional: Add a subtle visual cue for when they are truly disabled */
-#select-building:disabled, #select-floor:disabled {
-    color: #94a3b8 !important; /* Slate-400 for a true "locked" look */
-    background-color: #f8fafc;
-    cursor: not-allowed;
-}
-
-/* --- 6. LEAFLET TREE & LAYER CONTROLS --- */
-
-.leaflet-control-layers, 
-.leaflet-control-layers-tree {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    padding: 12px !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
-    background: white !important;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 13px;
-}
-
-.leaflet-control-layers-group-name,
-.leaflet-layerstree-header {
-    font-weight: 800 !important;
-    color: #1e293b;
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    margin-top: 8px;
-    padding-bottom: 2px;
-}
-
-.leaflet-layerstree-header::before {
-    content: '\f07b'; 
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    margin-right: 8px;
-    font-size: 11px;
-    color: #64748b;
-}
-
-.leaflet-layerstree-children {
-    margin-left: 12px !important;
-    padding-left: 8px !important;
-    border-left: 1px dashed #cbd5e1;
-}
-
-.leaflet-layerstree-label {
-    cursor: pointer;
-    color: #475569;
-    font-size: 13px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    padding: 2px 0;
-    transition: color 0.2s;
-}
-
-.leaflet-layerstree-label:hover {
-    color: #3b82f6;
-}
-
-/* --- 7. CUSTOM RADIO BUTTONS (TREE VIEW) --- */
-.leaflet-layerstree-leaf input[type="radio"] {
-    appearance: none; 
-    -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
-    border: 2px solid #cbd5e1;
-    border-radius: 50%; 
-    margin-right: 10px;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s ease;
-    background: white;
-}
-
-.leaflet-layerstree-leaf input[type="radio"]:checked {
-    border-color: #3b82f6;
-    background-color: #3b82f6;
-    box-shadow: inset 0 0 0 3px white;
-}
-
-.leaflet-layerstree-nevershow {
-    display: none;
-}
-
-/* --- 8. MARKER & BUTTON STYLING --- */
 .custom-marker-pin {
     display: flex;
     align-items: center;
@@ -254,28 +132,41 @@ input:focus {
     border-radius: 50%;
     width: 30px;
     height: 30px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
-.leaflet-marker-icon {
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+/* --- 6. LEAFLET TREE CONTROLS --- */
+.leaflet-control-layers-tree {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    background: white !important;
 }
 
-#remove-markers-btn {
-    background-color: white;
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    border-radius: 8px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-    transition: all 0.2s;
+.leaflet-layerstree-header {
+    font-weight: 800 !important;
+    color: #1e293b;
+    text-transform: uppercase;
+    font-size: 11px;
 }
 
-#remove-markers-btn:hover {
-    background-color: #fee2e2;
-    color: #ef4444;
-    transform: scale(1.1);
+.leaflet-layerstree-header::before {
+    content: '\f07b'; 
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    margin-right: 8px;
+    color: #64748b;
+}
+
+/* --- 7. LOGIN PAGE SPECIFICS --- */
+body.login-bg {
+    animation: fadeIn 0.5s ease-out;
+    background-image: url('resource/PicIcon/office.jpg');
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
