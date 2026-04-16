@@ -127,6 +127,45 @@
                 </span>
         </button>
 
+        <div id="view-report-modal" class="fixed inset-0 z-[6000] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeViewModal()"></div>
+    <div class="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div id="view-header-bar" class="h-2 w-full bg-blue-500"></div>
+        <div class="p-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <span id="view-category" class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-slate-100 text-slate-500 rounded">Category</span>
+                    <h3 id="view-title" class="text-xl font-black text-slate-800 mt-2">Title of Report</h3>
+                </div>
+                <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div id="view-image-container" class="w-full aspect-video rounded-xl bg-slate-100 overflow-hidden border border-slate-200 hidden">
+                    <img id="view-image" src="" class="w-full h-full object-cover">
+                </div>
+                
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">内容 / Description</p>
+                    <p id="view-description" class="text-slate-600 text-sm leading-relaxed italic">No description provided.</p>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xs">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <span id="view-author" class="text-xs font-bold text-slate-500 underline">User Name</span>
+                    </div>
+                    <span id="view-date" class="text-[10px] text-slate-400">2026/04/16</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
         <!--Content Sections-->
         <main class="flex-grow bg-white relative overflow-hidden">
             <!--Home Section-->
@@ -445,12 +484,12 @@
     <div class="space-y-4">
         <div>
             <label class="text-[11px] font-black text-slate-400 uppercase mb-1 block tracking-wider">改善案 (Proposed Method)</label>
-            <textarea rows="3" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="どのように改善しますか？"></textarea>
+            <textarea id="kaizen-method" rows="3" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="どのように改善しますか？"></textarea>
         </div>
     <!---benefits--->
         <div>
             <label class="text-[11px] font-black text-slate-400 uppercase mb-1 block tracking-wider">期待効果 (Benefits)</label>
-            <textarea rows="2" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="時間短縮、コスト削減、安全性向上など..."></textarea>
+            <textarea id="kaizen-benefits" rows="2" class="w-full bg-slate-50 rounded-xl p-3 text-sm border-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="時間短縮、コスト削減、安全性向上など..."></textarea>
         </div>
     </div>
     <!---photo upload / before improvement--->
@@ -459,9 +498,12 @@
             改善前の写真
         </label>
         <div onclick="document.getElementById('before-photo-input').click()" class="w-full aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center hover:bg-slate-100 hover:border-blue-300 transition-all cursor-pointer group">
+            
+            <div id="upload-placeholder" class="flex flex-col items-center">
             <i class="fa-solid fa-camera text-slate-300 text-3xl mb-2 group-hover:text-blue-400 transition-colors"></i>
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-blue-500">Tap to Upload Photo</p>
-            <input type="file" id="before-photo-input" class="hidden" accept="image/*">
+            </div>
+            <input type="file" id="before-photo-input" class="hidden" accept="image/*" onchange="previewImage(event)">
         </div>
     </div>
     <!---location selection--->
@@ -532,9 +574,9 @@
         
         <img src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png" 
              class="absolute w-[41px] h-[41px] max-w-none left-[12px] top-0 pointer-events-none origin-bottom opacity-60">
-    </div>
+        </div>
 
-</div>
+        </div>
             </div>
         </div>
 
@@ -543,6 +585,62 @@
             <button onclick="confirmLightboxLocation()" class="px-6 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg shadow-blue-200 shadow-lg">Set Location</button>
         </div>
     </div>
+    </div>
+
+    <!--Form modal-->
+    <div id="kaizen-view-modal" class="fixed inset-0 z-[11000] bg-black/80 items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-[500px] max-h-[85vh] relative flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-800 text-white">
+                <div class="flex items-center gap-3">
+                    <span id="view-badge" class="bg-blue-500 text-[10px] font-black px-2 py-1 rounded uppercase">改善詳細</span>
+                    <h3 id="kaizen-title" class="font-bold text-lg">Title Loading...</h3>
+                </div>
+                <button onclick="closeViewModal()" class="text-white/70 hover:text-white text-2xl px-2">&times;</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">制作者</p>
+                        <p id="view-user" class="text-sm font-bold text-slate-700">-</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">日付</p>
+                        <p id="view-date" class="text-sm font-mono text-slate-500">-</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-2">現状の詳細 (Problem)</p>
+                    <p id="kaizen-description" class="text-sm text-slate-700 leading-relaxed"></p>
+                </div>
+
+                <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                    <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">改善案 (Proposal)</p>
+                    <p id="view-method" class="text-sm text-slate-700 leading-relaxed">No method provided.</p>
+                </div>
+
+                <div class="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                    <p class="text-[10px] text-green-500 font-bold uppercase mb-2">期待される効果 (Benefits)</p>
+                    <p id="view-benefits" class="text-sm text-slate-700 leading-relaxed">-</p>
+                </div>
+
+                <div id="view-image-container" class="hidden">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-2">改善前の写真</p>
+                    <img id="view-image" src="" class="w-full rounded-lg border border-slate-200">
+                </div>
+            </div>
+
+            <div class="p-4 border-t bg-slate-50 flex justify-between items-center">
+                <div class="flex items-center gap-2 text-slate-400">
+                    <i class="fa-solid fa-location-dot text-xs"></i>
+                    <span id="view-location" class="text-[10px] font-bold uppercase tracking-tighter">Location: -</span>
+                </div>
+                <button onclick="closeViewModal()" class="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300 transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="/static/script.js"></script>
