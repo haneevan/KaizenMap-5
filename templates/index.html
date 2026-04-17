@@ -594,14 +594,7 @@
             
             <!-- Header: Integrated Classification Icon + Centered Title -->
             <div class="p-6 border-b flex justify-between items-center bg-slate-900 text-white shrink-0 relative">
-                <!-- Top Left: Classification Icon / Badge -->
-                <div class="flex items-center gap-3 z-10">
-                    <div id="classification-badge" class="flex flex-col items-center justify-center bg-blue-600 px-3 py-2 rounded-lg shadow-lg border border-blue-400/30">
-                        <i class="fa-solid fa-shield-halved text-white text-xl mb-0.5"></i>
-                        <span id="classification-text" class="text-[8px] font-black leading-none uppercase tracking-tighter text-white/90">Safety</span>
-                    </div>
-                </div>
-
+                
                 <!-- Centered Main Title -->
                 <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                     <h2 class="font-black text-2xl tracking-[0.25em] leading-none text-white">改善提案</h2>
@@ -618,7 +611,7 @@
                 <!-- Theme / Title Section -->
                 <div class="pb-6 border-b border-slate-100">
                     <div class="flex items-center gap-2 mb-1 px-1">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">テーマ (Theme)</p>
+                        <p class="text-[11px] text-slate-500 font-black uppercase tracking-[0.3em]">テーマ (Theme)</p>
                     </div>
                     <h3 id="view-modal-title" class="font-black text-2xl tracking-tight text-slate-800 leading-tight px-1 mb-6">
                         Safety Cover Installation for Conveyor Line 4
@@ -628,14 +621,12 @@
                     <div class="flex items-center gap-4 px-1">
                         <span class="text-[11px] font-black text-slate-500">区分 (Class) :</span>
                         <div class="flex gap-2">
-                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">生産性</div>
-                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">原価</div>
-                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">品質</div>
-                            <div class="px-4 py-1.5 rounded-md text-[11px] font-bold bg-blue-600 border border-blue-600 text-white shadow-sm flex items-center gap-2">
-                                <i class="fa-solid fa-check text-[8px]"></i> 安全
-                            </div>
-                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">５S</div>
-                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">その他</div>
+                            <div id="view-modal-class-production" class="px-3 py-1 rounded-md text-[12px] font-bold border border-slate-200 text-slate-400 transition-all">生産性</div>
+                            <div id="view-modal-class-cost" class="px-3 py-1 rounded-md text-[12px] font-bold border border-slate-200 text-slate-400 transition-all">原価</div>
+                            <div id="view-modal-class-quality" class="px-3 py-1 rounded-md text-[12px] font-bold border border-slate-200 text-slate-400 transition-all">品質</div>
+                            <div id="view-modal-class-safety" class="px-3 py-1 rounded-md text-[12px] font-bold border border-slate-200 text-slate-400 transition-all">安全</div>
+                            <div id="view-modal-class-5s" class="px-3 py-1 rounded-md text-[12px] font-bold border border-slate-200 text-slate-400 transition-all">５S</div>
+                            <div id="view-modal-class-others" class="px-3 py-1 rounded-md text-[12px] font-bold border border-slate-200 text-slate-400 transition-all">その他</div>
                         </div>
                     </div>
                 </div>
