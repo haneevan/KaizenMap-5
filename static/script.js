@@ -763,6 +763,34 @@ window.openViewModal = function(data) {
         classificationBadge.style.backgroundColor = colorMap[data.category] || '#3b82f6';
     }
 
+    // Sync Classification Horizontal Selection Row
+    const classificationMap = {
+        'production': 'view-modal-class-production',
+        'cost': 'view-modal-class-cost',
+        'quality': 'view-modal-class-quality',
+        'safety': 'view-modal-class-safety',
+        '5s': 'view-modal-class-5s',
+        'others': 'view-modal-class-others'
+    };
+    
+    // Reset all classification items to unselected state
+    Object.values(classificationMap).forEach(id => {
+        const classEl = document.getElementById(id);
+        if (classEl) {
+            classEl.classList.remove('bg-blue-600', 'border-blue-600', 'text-white', 'shadow-sm');
+            classEl.classList.add('border-slate-200', 'text-slate-400');
+        }
+    });
+    
+    // Highlight the selected classification
+    if (data.category && classificationMap[data.category]) {
+        const selectedEl = document.getElementById(classificationMap[data.category]);
+        if (selectedEl) {
+            selectedEl.classList.remove('border-slate-200', 'text-slate-400');
+            selectedEl.classList.add('bg-blue-600', 'border-blue-600', 'text-white', 'shadow-sm');
+        }
+    }
+
     // Handle Image
     const imgContainer = document.getElementById('view-image-container');
     const imgEl = document.getElementById('view-image');
