@@ -14,8 +14,8 @@ let translateX = 0;
 let translateY = 0;
 let improvementCache = [];
 
-// Mock User Data
-const currentUser = { id: "USR001", role: "admin" }; 
+// Mock User Data - will be updated by session if available
+let currentUser = { id: "USR001", role: "admin", name: "System Admin" }; 
 
 // --- 1. CONFIGURATION ---
 const factoryConfig = {
@@ -680,11 +680,27 @@ window.openImprovementDetails = function(data) {
     // Fill the fields with the "submitted" data
     document.getElementById('kaizen-title').value = data.title;
     document.getElementById('kaizen-description').value = data.description;
+    document.getElementById('kaizen-method').value = data.method || "";
+    document.getElementById('kaizen-benefits').value = data.benefits || "";
     document.getElementById('select-floor').value = data.floorId;
 
     // Set the category radio button
     const categoryRadio = document.querySelector(`input[name="kubun"][value="${data.category}"]`);
     if (categoryRadio) categoryRadio.checked = true;
+
+    // Set the location coordinates for editing
+    tempCoords = data.coords || null;
+    
+    // Update the coordinates display
+    const coordDisplay = document.getElementById('display-coords');
+    if (coordDisplay && tempCoords) {
+        coordDisplay.innerText = "Location already set";
+        coordDisplay.classList.remove('text-amber-500', 'animate-pulse');
+        coordDisplay.classList.add('text-green-600');
+    }
+
+    // Sync the mini-map to show the selected floor
+    syncDropdownsToFloor(data.floorId);
 
     // Change the panel title or button to "View/Edit" mode if needed
     const submitBtn = document.querySelector('#kaizen-side-panel button[onclick="submitKaizenForm()"]');
@@ -694,26 +710,57 @@ window.openImprovementDetails = function(data) {
     }
 };
 
+// Helper function to find blueprint path from floorId
+function getBlueprintPathFromFloorId(floorId) {
+    if (!floorId || floorId === "Main Map") return null;
+    
+    // Search through all configurations
+    for (const config of [factoryConfig, office_othersConfig]) {
+        for (const building in config) {
+            const floors = config[building].floors;
+            for (const floor in floors) {
+                if (floors[floor].id === floorId) {
+                    const folder = config[building].folder;
+                    const path = floors[floor].path;
+                    return `/static/resource/Company Blueprints/${folder}/${path}`;
+                }
+            }
+        }
+    }
+    return null;
+}
+
 // Function to open the View Modal
 window.openViewModal = function(data) {
     const modal = document.getElementById('kaizen-view-modal');
     if (!modal) return;
 
-    // Mapping Data to UI - Display all synced form data
-    document.getElementById('view-title').innerText = data.title || "No Title";
-    document.getElementById('view-user').innerText = data.user || "System Admin";
-    document.getElementById('view-date').innerText = data.date || "-";
-    document.getElementById('view-description').innerText = data.description || "No description provided.";
-    document.getElementById('view-method').innerText = data.method && data.method.trim() !== "" ? data.method : "改善案が未設定です";
-    document.getElementById('view-benefits').innerText = data.benefits && data.benefits.trim() !== "" ? data.benefits : "期待効果が未設定です";
-    document.getElementById('view-location').innerText = `Location: ${data.floorId || 'Unknown Area'}`;
+    // Mapping Data to UI - Display all synced form data (using unique modal IDs)
+    document.getElementById('view-modal-title').innerText = data.title || "No Title";
+    document.getElementById('view-modal-user').innerText = data.user || "System Admin";
+    document.getElementById('view-modal-date').innerText = data.date || "-";
+    document.getElementById('view-modal-description').innerText = data.description || "No description provided.";
+    document.getElementById('view-modal-method').innerText = data.method && data.method.trim() !== "" ? data.method : "改善案が未設定です";
+    document.getElementById('view-modal-benefits').innerText = data.benefits && data.benefits.trim() !== "" ? data.benefits : "期待効果が未設定です";
     
-    // Badge Color/Text based on classification
-    const badge = document.getElementById('view-badge');
-    if (badge) {
-        badge.innerText = data.category || "General";
-        // Optional: Change color based on category
-        badge.style.backgroundColor = data.category === 'safety' ? '#ef4444' : '#3b82f6';
+    // Update Classification Badge based on category
+    const classificationText = document.getElementById('classification-text');
+    const classificationBadge = document.getElementById('classification-badge');
+    
+    if (classificationText && classificationBadge) {
+        classificationText.innerText = data.category ? data.category.toUpperCase() : "GENERAL";
+        
+        // Set color based on category
+        const colorMap = {
+            'production': '#ef4444',    // red
+            'cost': '#f59e0b',           // amber
+            'quality': '#8b5cf6',        // purple
+            'safety': '#ef4444',         // red
+            '5s': '#10b981',             // emerald
+            'others': '#3b82f6'          // blue
+        };
+        
+        classificationBadge.style.backgroundColor = colorMap[data.category] || '#3b82f6';
     }
 
     // Handle Image
@@ -726,12 +773,64 @@ window.openViewModal = function(data) {
         imgContainer.classList.add('hidden');
     }
 
-    // Show Modal properly
+    // Handle Blueprint Mini-Map with Pin
+    const blueprintImg = document.getElementById('view-modal-blueprint');
+    const mapPin = document.getElementById('view-modal-map-pin');
+    const mapPlaceholder = document.getElementById('view-modal-map-placeholder');
+    const blueprintPath = getBlueprintPathFromFloorId(data.floorId);
+    
+    if (blueprintPath && blueprintImg) {
+        blueprintImg.src = blueprintPath;
+        blueprintImg.style.display = 'block';
+        if (mapPlaceholder) mapPlaceholder.style.display = 'none';
+        
+        // Position the pin on the blueprint
+        if (data.coords && mapPin) {
+            const relX = (data.coords.lng / 2250) * 100;
+            const relY = (1 - (data.coords.lat / 1500)) * 100;
+            
+            mapPin.style.left = `${relX}%`;
+            mapPin.style.top = `${relY}%`;
+            mapPin.style.transform = 'translate(-50%, -50%)';
+            mapPin.classList.remove('hidden');
+        } else if (mapPin) {
+            mapPin.classList.add('hidden');
+        }
+    } else {
+        if (blueprintImg) blueprintImg.style.display = 'none';
+        if (mapPlaceholder) mapPlaceholder.style.display = 'flex';
+        if (mapPin) mapPin.classList.add('hidden');
+    }
+
+    // Handle Edit Button - Only show if current user is admin or the submitter
+    const editBtn = document.getElementById('view-modal-edit-btn');
+    if (editBtn) {
+        const isAdmin = currentUser.role === "admin";
+        const isSubmitter = data.user === currentUser.name;
+        
+        if (isAdmin || isSubmitter) {
+            editBtn.style.display = 'flex';
+            editBtn.onclick = function() {
+                window.openImprovementDetails(data);
+                closeViewModal();
+            };
+        } else {
+            editBtn.style.display = 'none';
+        }
+    }
+
+    // Show Modal properly - Add ACTIVE class to trigger CSS display
     modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    modal.classList.add('active');
+    
+    // Scroll to top of modal content
+    const modalContent = document.querySelector('#kaizen-view-modal .overflow-y-auto');
+    if (modalContent) {
+        modalContent.scrollTop = 0;
+    }
+    
     setTimeout(() => {
         modal.classList.add('opacity-100');
-        modal.style.pointerEvents = 'auto';
     }, 10);
 };
 
@@ -744,7 +843,6 @@ window.closeViewModal = function() {
     
     setTimeout(() => {
         modal.classList.add('hidden');
-        modal.style.display = 'none'; // Completely remove from the render tree
     }, 300);
 };
 
