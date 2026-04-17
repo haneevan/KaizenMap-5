@@ -588,57 +588,184 @@
     </div>
     </div>
 
-    <!--Form modal-->
-    <div id="kaizen-view-modal" class="fixed inset-0 z-[11000] bg-black/80 items-center justify-center hidden opacity-0 transition-opacity duration-300">
-        <div class="bg-white w-[500px] max-h-[85vh] relative flex flex-col overflow-hidden shadow-2xl">
-            <div class="p-5 border-b flex justify-between items-center bg-slate-800 text-white">
-                <div class="flex items-center gap-3">
-                    <span id="view-badge" class="bg-blue-500 text-[10px] font-black px-2 py-1 rounded uppercase">改善詳細</span>
-                    <h3 id="kaizen-title" class="font-bold text-lg">Title Loading...</h3>
+    <!-- Form modal - Set to A4 dimensions -->
+    <div id="kaizen-view-modal" class="hidden fixed inset-0 z-[11000] bg-black/60 items-center justify-center transition-opacity duration-300">
+        <div id="view-modal-container" class="bg-white a4-container rounded-lg relative flex flex-col overflow-hidden shadow-2xl transform scale-100 transition-transform duration-300">
+            
+            <!-- Header: Integrated Classification Icon + Centered Title -->
+            <div class="p-6 border-b flex justify-between items-center bg-slate-900 text-white shrink-0 relative">
+                <!-- Top Left: Classification Icon / Badge -->
+                <div class="flex items-center gap-3 z-10">
+                    <div id="classification-badge" class="flex flex-col items-center justify-center bg-blue-600 px-3 py-2 rounded-lg shadow-lg border border-blue-400/30">
+                        <i class="fa-solid fa-shield-halved text-white text-xl mb-0.5"></i>
+                        <span id="classification-text" class="text-[8px] font-black leading-none uppercase tracking-tighter text-white/90">Safety</span>
+                    </div>
                 </div>
-                <button onclick="closeViewModal()" class="text-white/70 hover:text-white text-2xl px-2">&times;</button>
+
+                <!-- Centered Main Title -->
+                <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <h2 class="font-black text-2xl tracking-[0.25em] leading-none text-white">改善提案</h2>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Improvement Proposal</p>
+                </div>
+
+                <!-- Close Button -->
+                <button onclick="closeViewModal()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-all text-3xl z-10">&times;</button>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">制作者</p>
-                        <p id="view-user" class="text-sm font-bold text-slate-700">-</p>
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar bg-white text-left">
+                
+                <!-- Theme / Title Section -->
+                <div class="pb-6 border-b border-slate-100">
+                    <div class="flex items-center gap-2 mb-1 px-1">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">テーマ (Theme)</p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">日付</p>
-                        <p id="view-date" class="text-sm font-mono text-slate-500">-</p>
+                    <h3 id="view-modal-title" class="font-black text-2xl tracking-tight text-slate-800 leading-tight px-1 mb-6">
+                        Safety Cover Installation for Conveyor Line 4
+                    </h3>
+
+                    <!-- Classification Horizontal Selection Row -->
+                    <div class="flex items-center gap-4 px-1">
+                        <span class="text-[11px] font-black text-slate-500">区分 (Class) :</span>
+                        <div class="flex gap-2">
+                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">生産性</div>
+                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">原価</div>
+                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">品質</div>
+                            <div class="px-4 py-1.5 rounded-md text-[11px] font-bold bg-blue-600 border border-blue-600 text-white shadow-sm flex items-center gap-2">
+                                <i class="fa-solid fa-check text-[8px]"></i> 安全
+                            </div>
+                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">５S</div>
+                            <div class="px-3 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-400">その他</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-2">現状の詳細 (Problem)</p>
-                    <p id="kaizen-description" class="text-sm text-slate-700 leading-relaxed"></p>
+                <!-- Metadata Grid -->
+                <div class="grid grid-cols-2 gap-4 pb-6 border-b border-slate-100">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 text-lg">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-slate-400 font-bold uppercase tracking-widest">制作者 (Submitter)</p>
+                            <p id="view-modal-user" class="text-base font-black text-slate-700">Tanaka Ichiro</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex flex-col justify-center">
+                        <p class="text-[11px] text-slate-400 font-bold uppercase tracking-widest">提出日 (Date)</p>
+                        <p id="view-modal-date" class="text-base font-mono font-bold text-blue-600">2024.04.17</p>
+                    </div>
                 </div>
 
-                <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                    <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">改善案 (Proposal)</p>
-                    <p id="view-method" class="text-sm text-slate-700 leading-relaxed">No method provided.</p>
+                <!-- Problem Details -->
+                <div class="group text-left">
+                    <div class="flex items-center gap-2 mb-3 px-1">
+                        <div class="w-2 h-5 bg-red-500 rounded-full"></div>
+                        <h4 class="text-[12px] font-black text-slate-500 uppercase tracking-widest">現状の詳細 (Problem)</h4>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm min-h-[120px]">
+                        <p id="view-modal-description" class="text-base text-slate-700 leading-relaxed whitespace-pre-wrap italic font-medium">The conveyor belt edge is exposed near the operator station, creating a risk of finger entanglement during high-speed operation.</p>
+                    </div>
                 </div>
 
-                <div class="bg-green-50/50 p-4 rounded-xl border border-green-100">
-                    <p class="text-[10px] text-green-500 font-bold uppercase mb-2">期待される効果 (Benefits)</p>
-                    <p id="view-benefits" class="text-sm text-slate-700 leading-relaxed">-</p>
+                <!-- Proposal Section -->
+                <div class="text-left">
+                    <div class="flex items-center gap-2 mb-3 px-1">
+                        <div class="w-2 h-5 bg-blue-500 rounded-full"></div>
+                        <h4 class="text-[12px] font-black text-slate-500 uppercase tracking-widest">改善案 (Proposal)</h4>
+                    </div>
+                    <div class="bg-blue-50/30 p-6 rounded-xl border border-blue-100 shadow-sm min-h-[120px]">
+                        <p id="view-modal-method" class="text-base text-slate-800 leading-relaxed font-semibold">Install a custom-fit polycarbonate safety shield with an interlock sensor that stops the machine if removed.</p>
+                    </div>
                 </div>
 
-                <div id="view-image-container" class="hidden">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-2">改善前の写真</p>
-                    <img id="view-image" src="" class="w-full rounded-lg border border-slate-200">
+                <!-- Benefits -->
+                <div class="bg-green-50/50 p-6 rounded-xl border border-green-100 text-left">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fa-solid fa-chart-line text-green-500 text-sm"></i>
+                        <h4 class="text-[12px] font-black text-green-600 uppercase tracking-widest">期待される効果 (Benefits)</h4>
+                    </div>
+                    <p id="view-modal-benefits" class="text-base text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">Eliminates finger entanglement risk completely. Ensures compliance with ISO safety standards.</p>
+                </div>
+
+                <!-- Visual Evidence Grid: Uploaded Pic & Map Location -->
+                <div class="grid grid-cols-2 gap-6 pt-4">
+                    <!-- Uploaded Picture Section -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 px-1">
+                            <i class="fa-solid fa-camera text-slate-400 text-xs"></i>
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">現場写真 (Evidence Photo)</h4>
+                        </div>
+                        <div id="view-image-container" class="aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center relative group">
+                            <!-- Placeholder (Shows if no image is provided) -->
+                            <div class="text-center flex flex-col items-center gap-2 opacity-30">
+                                <i class="fa-solid fa-image text-3xl"></i>
+                                <span class="text-[10px] font-bold">No Image Uploaded</span>
+                            </div>
+                            <!-- Actual Image (Hidden by default in CSS logic, but placed here for your JS to swap) -->
+                            <img id="view-image" src="" alt="Kaizen Evidence" class="hidden absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        </div>
+                    </div>
+
+                    <!-- Pinned Location Map Section -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 px-1">
+                            <i class="fa-solid fa-map-location-dot text-blue-500 text-xs"></i>
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">詳細場所 (Pin Location)</h4>
+                        </div>
+                        <div id="view-modal-map-container" class="aspect-video rounded-xl border-2 border-slate-200 bg-slate-100 overflow-hidden relative shadow-inner flex items-center justify-center">
+                            <!-- Blueprint Image will be populated here -->
+                            <img id="view-modal-blueprint" src="" class="max-w-full max-h-full object-contain" style="display: none;">
+                            
+                            <!-- Location Pin -->
+                            <div id="view-modal-map-pin" class="absolute hidden pointer-events-none">
+                                <i class="fa-solid fa-location-dot text-red-500 text-3xl drop-shadow-lg"></i>
+                            </div>
+
+                            <!-- Default placeholder -->
+                            <div id="view-modal-map-placeholder" class="text-center flex flex-col items-center gap-2 opacity-30">
+                                <i class="fa-solid fa-map text-4xl"></i>
+                                <span class="text-[10px] font-bold text-slate-400">Blueprint</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approval Chain -->
+                <div class="pt-8 mt-10 border-t border-slate-100">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6 text-center">承認ルート (Approval Status)</p>
+                    <div class="flex justify-around items-center max-w-lg mx-auto">
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full border-2 border-green-500 flex items-center justify-center text-green-500 mb-2">
+                                <i class="fa-solid fa-check text-lg"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-500">Submitter</span>
+                        </div>
+                        <div class="h-px w-12 bg-slate-200"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full border-2 border-slate-200 flex items-center justify-center text-slate-300 mb-2">
+                                <i class="fa-solid fa-hourglass-start text-sm"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-300">Section Head</span>
+                        </div>
+                        <div class="h-px w-12 bg-slate-200"></div>
+                        <div class="flex flex-col items-center opacity-40">
+                            <div class="w-12 h-12 rounded-full border-2 border-slate-200 flex items-center justify-center text-slate-300 mb-2">
+                                <i class="fa-solid fa-lock text-sm"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-300">Manager</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="p-4 border-t bg-slate-50 flex justify-between items-center">
-                <div class="flex items-center gap-2 text-slate-400">
-                    <i class="fa-solid fa-location-dot text-xs"></i>
-                    <span id="view-location" class="text-[10px] font-bold uppercase tracking-tighter">Location: -</span>
-                </div>
-                <button onclick="closeViewModal()" class="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-300 transition-all">
-                    Close
+            <!-- Footer Actions -->
+            <div class="p-6 border-t bg-slate-50 flex justify-end items-center shrink-0 gap-3">
+                <button onclick="closeViewModal()" class="px-6 py-2 bg-white text-slate-600 border border-slate-200 rounded-lg font-bold text-sm hover:bg-slate-100 transition-all">
+                    閉じる
+                </button>
+                <button id="view-modal-edit-btn" class="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center gap-2" style="display: none;">
+                    <i class="fa-solid fa-pen-to-square"></i> 編集
                 </button>
             </div>
         </div>
