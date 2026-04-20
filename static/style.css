@@ -7,8 +7,7 @@ body {
     margin: 0;
 }
 
-/* --- 2. STRUCTURAL LAYERING (UI & MAP) --- */
-/* High-level UI elements */
+/* --- 2. STRUCTURAL LAYERING (BASE MAP & NAVIGATION) --- */
 nav, .fixed, .sticky {
     z-index: 5000 !important;
 }
@@ -19,60 +18,53 @@ nav, .fixed, .sticky {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* Base Map Layer */
-#kaizen-map {
+#kaizen-map, .leaflet-pane {
     z-index: 1 !important;
-}
-
-.leaflet-pane {
-    z-index: 1 !important;
-}
-
-/* CRITICAL: Lift markers and interaction layers above blueprints */
-.leaflet-marker-pane {
-    z-index: 600 !important;
-}
-.leaflet-interaction-pane {
-    z-index: 700 !important;
 }
 
 .leaflet-control-container {
     z-index: 400 !important; 
 }
 
-/* --- 3. MODALS & PANELS (Updated with Canvas Styles) --- */
-/* The Registration Side Panel */
+.leaflet-marker-pane {
+    z-index: 600 !important;
+}
+
+.leaflet-interaction-pane {
+    z-index: 700 !important;
+}
+
+/* --- 3. MODALS, PANELS & OVERLAYS --- */
+
+/* Side Panel - Registration */
 #kaizen-side-panel {
     transition: transform 0.3s ease-in-out;
     transform: translateX(100%);
     z-index: 5000 !important; 
 }
 
-/* The View/Detail Modal (Highest Layer) */
+/* Main View/Detail Modal (A4 Style) */
 #kaizen-view-modal {
     z-index: 12000 !important; 
     pointer-events: none; 
     opacity: 0;
     transition: opacity 0.3s ease;
-    /* FIX: Changed from flex to none to prevent blocking the page when hidden */
     display: none !important; 
 }
 
 #kaizen-view-modal.active {
-    /* FIX: Only apply flex display when active */
     display: flex !important;
     opacity: 1 !important;
     pointer-events: auto !important;
 }
 
-#kaizen-view-modal.active #view-modal-container {
-    transform: scale(1) !important;
-}
-
-/* Modal Container & A4 Sizing from Canvas */
 #view-modal-container {
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform: scale(0.95); /* Start slightly smaller for pop effect */
+    transform: scale(0.95);
+}
+
+#kaizen-view-modal.active #view-modal-container {
+    transform: scale(1) !important;
 }
 
 .a4-container {
@@ -82,17 +74,71 @@ nav, .fixed, .sticky {
     max-height: 95vh;
 }
 
-/* Interactive elements in modal */
-#view-image:hover {
-    cursor: zoom-in;
+/* --- 4. LIGHTBOX SYSTEM (TOP LAYER) --- */
+#map-lightbox {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 15000 !important; /* Higher than #kaizen-view-modal */
 }
 
-/* Animation triggers for JS */
-.opacity-100 {
-    opacity: 1 !important;
+#map-lightbox:not(.hidden) {
+    display: flex;
 }
 
-/* --- 4. DASHBOARD & UI COMPONENTS --- */
+#lightbox-viewport {
+    width: 90vw;
+    height: 80vh;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background: #f8fafc;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+#lightbox-viewport:active {
+    cursor: grabbing;
+}
+
+#lightbox-container {
+    position: absolute;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+#lightbox-img {
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+#lightbox-footer {
+    /* Ensure no background is inherited */
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Make the 'Back' button look like a floating action button */
+#lightbox-cancel-btn.bg-blue-600 {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    border-radius: 8px;
+    padding: 10px 24px;
+    transition: all 0.2s ease;
+}
+
+#lightbox-cancel-btn.bg-blue-600:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.5);
+}
+
+/* --- 5. DASHBOARD & UI COMPONENTS --- */
 input:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
@@ -121,7 +167,6 @@ input:focus {
     border-left: 4px solid #3b82f6;
 }
 
-/* Custom Slim Scrollbar from Canvas */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
@@ -136,7 +181,7 @@ input:focus {
     background: #cbd5e1;
 }
 
-/* --- 5. LEAFLET POPUPS & MARKERS --- */
+/* --- 6. LEAFLET CUSTOM STYLES (POPUPS & TREE) --- */
 .leaflet-popup-content-wrapper {
     background: rgba(255, 255, 255, 0.9) !important;
     backdrop-filter: blur(8px);
@@ -161,7 +206,6 @@ input:focus {
     height: 30px;
 }
 
-/* --- 6. LEAFLET TREE CONTROLS --- */
 .leaflet-control-layers-tree {
     border: 1px solid #e2e8f0 !important;
     border-radius: 12px !important;
@@ -184,23 +228,11 @@ input:focus {
     color: #64748b;
 }
 
-/* --- 7. LOGIN PAGE SPECIFICS --- */
-body.login-bg {
-    animation: fadeIn 0.5s ease-out;
-    background-image: url('resource/PicIcon/office.jpg');
-    background-size: cover;
-    background-position: center;
-    height: 100vh;
-}
-
-
-/* --- FIX FOR MINI-MAP PIN SYNC --- */
-
-/* This container must wrap both the <img> and the pin <div> */
+/* --- 7. BLUEPRINT & PIN SYNC FIXES --- */
 .blueprint-anchor {
     position: relative !important;
-    display: inline-block; /* Crucial: Shrinks the div to the image size */
-    line-height: 0;        /* Removes the tiny gap at the bottom of images */
+    display: inline-block;
+    line-height: 0;
 }
 
 #view-modal-blueprint, .sync-mini-map-img {
@@ -209,15 +241,35 @@ body.login-bg {
     display: block;
 }
 
-/* This targets the pin inside the View Modal and the Registration Side Panel */
-#view-modal-map-pin, #mini-pin {
+/* Unified Pin Logic (Tip-aligned) */
+#view-modal-map-pin, #mini-pin, #lightbox-pin {
     position: absolute !important;
     z-index: 100;
     pointer-events: none;
-    /* This ensures the 'pointy' end of the icon is the reference point */
     transform: translate(-50%, -100%) !important;
 }
 
+#lightbox-pin {
+    color: #ef4444;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
+
+.cursor-zoom-in {
+    cursor: zoom-in;
+}
+
+/* --- 8. UTILITIES & ANIMATIONS --- */
+.opacity-100 {
+    opacity: 1 !important;
+}
+
+body.login-bg {
+    animation: fadeIn 0.5s ease-out;
+    background-image: url('resource/PicIcon/office.jpg');
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+}
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-20px); }
