@@ -729,7 +729,7 @@ function getBlueprintPathFromFloorId(floorId) {
     }
     return null;
 }
-
+// --- VIEW MODAL LOGIC (Merged Part 2 + Visual Highlights) ---
 // Function to open the View Modal
 window.openViewModal = function(data) {
     const modal = document.getElementById('kaizen-view-modal');
