@@ -382,14 +382,14 @@ function renderPersonalKaizenList() {
 function initLightbox() {
     const viewport = document.getElementById('lightbox-viewport');
     const container = document.getElementById('lightbox-container');
+    const lightbox = document.getElementById('map-lightbox'); // Added reference
 
     if (!viewport || !container) return;
 
+    // 1. Zoom Logic (Keep as is, it's good)
     viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const zoomSpeed = 0.1;
         const rect = viewport.getBoundingClientRect();
-        
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
@@ -406,6 +406,7 @@ function initLightbox() {
         updateTransform();
     }, { passive: false });
 
+    // 2. Drag Logic (Keep as is, helpful for viewing details)
     viewport.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         isDragging = true;
@@ -426,11 +427,18 @@ function initLightbox() {
         if(viewport) viewport.style.cursor = 'grab';
     });
 
+    // 3. Click Logic (MODIFIED for View-Only)
     viewport.onclick = function(e) {
+        // --- NEW: BLOCK IF READ-ONLY ---
+        if (lightbox.dataset.readOnly === "true") return;
+
+        // Prevent pinning if the user was actually dragging the map
         if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) return; 
 
         const pin = document.getElementById('lightbox-pin');
+        const img = document.getElementById('lightbox-img');
         
+        // If pin exists, clicking removes it (Toggle behavior)
         if (pin && !pin.classList.contains('hidden')) {
             pin.classList.add('hidden');
             tempRelX = 0;
@@ -445,6 +453,7 @@ function initLightbox() {
             return;
         }
 
+        // Calculate position relative to the image container
         const rect = container.getBoundingClientRect();
         const x = (e.clientX - rect.left) / scale;
         const y = (e.clientY - rect.top) / scale;
@@ -452,12 +461,16 @@ function initLightbox() {
         if (pin) {
             pin.style.left = `${x}px`;
             pin.style.top = `${y}px`;
+            // Ensure tip alignment
+            pin.style.transform = 'translate(-50%, -100%)'; 
             pin.classList.remove('hidden');
         }
 
-        const img = document.getElementById('lightbox-img');
-        tempRelX = x / img.offsetWidth;
-        tempRelY = y / img.offsetHeight;
+        // Save relative coordinates for the "Confirm" function
+        if (img) {
+            tempRelX = x / img.offsetWidth;
+            tempRelY = y / img.offsetHeight;
+        }
     };
 }
 
@@ -466,41 +479,74 @@ function updateTransform() {
     if (container) container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 }
 
-window.openMapLightbox = function(path, floorId) {
+window.openMapLightbox = function(path, floorId, isReadOnly = false) {
     const lightbox = document.getElementById('map-lightbox');
     const img = document.getElementById('lightbox-img');
     const viewport = document.getElementById('lightbox-viewport');
     const pin = document.getElementById('lightbox-pin');
     
+    // Select footer buttons by their specific IDs for precision
+    const confirmBtn = document.getElementById('lightbox-confirm-btn');
+    const cancelBtn = document.getElementById('lightbox-cancel-btn');
+
     if (!img || !viewport) return;
 
+    // 1. Layering Fix: Match your new style.css hierarchy
+    lightbox.style.zIndex = "15000"; 
+    lightbox.dataset.readOnly = isReadOnly;
+
+    // 2. Button Aesthetic Logic
+    if (isReadOnly) {
+        // Hide 'Set Location' completely
+        if (confirmBtn) confirmBtn.style.display = 'none';
+        
+        // Morph 'Cancel' into the primary 'Back' button
+        if (cancelBtn) {
+        cancelBtn.innerText = "戻す";
+        // Remove the old grey styles and add the new 'neat' blue styles
+        cancelBtn.className = "px-8 py-3 rounded-xl font-bold text-white bg-blue-600 shadow-lg transition-all";
+    }
+    } else {
+        // Restore standard Drafting Mode appearance
+        if (confirmBtn) {
+            confirmBtn.style.display = 'block';
+            confirmBtn.innerText = "場所を確定";
+        }
+        if (cancelBtn) {
+            cancelBtn.innerText = "キャンセル";
+            cancelBtn.classList.remove('bg-blue-600', 'text-white');
+            cancelBtn.classList.add('bg-slate-200', 'text-slate-700');
+        }
+    }
+
+    // 3. Image & Pin Positioning Logic
     img.src = path;
     scale = 1;
 
     img.onload = function() {
+        // Center image in viewport
         translateX = (viewport.offsetWidth - img.offsetWidth) / 2;
         translateY = (viewport.offsetHeight - img.offsetHeight) / 2;
         updateTransform();
 
         if (tempCoords) {
-            tempRelX = tempCoords.lng / 2250;
-            tempRelY = 1 - (tempCoords.lat / 1500);
-
-            const pixelX = tempRelX * img.offsetWidth;
-            const pixelY = tempRelY * img.offsetHeight;
+            // Using your established coordinate mapping
+            const pixelX = (tempCoords.lng / 2250) * img.offsetWidth;
+            const pixelY = (1 - (tempCoords.lat / 1500)) * img.offsetHeight;
 
             if (pin) {
                 pin.style.left = `${pixelX}px`;
                 pin.style.top = `${pixelY}px`;
+                // Crucial: Keep the tip of the pin on the spot
+                pin.style.transform = 'translate(-50%, -100%)';
                 pin.classList.remove('hidden');
             }
         } else {
             if (pin) pin.classList.add('hidden');
-            tempRelX = 0; 
-            tempRelY = 0;
         }
     };
 
+    // 4. Smooth Transition
     lightbox.classList.remove('hidden');
     setTimeout(() => lightbox.classList.add('opacity-100'), 10);
 };
@@ -734,7 +780,7 @@ function getBlueprintPathFromFloorId(floorId) {
 window.openViewModal = function(data) {
     const modal = document.getElementById('kaizen-view-modal');
     if (!modal) return;
-
+    tempCoords = data.coords;
     // Mapping Data to UI - Display all synced form data (using unique modal IDs)
     document.getElementById('view-modal-title').innerText = data.title || "No Title";
     document.getElementById('view-modal-user').innerText = data.user || "System Admin";
@@ -812,6 +858,10 @@ window.openViewModal = function(data) {
         blueprintImg.style.display = 'block';
         if (mapPlaceholder) mapPlaceholder.style.display = 'none';
         
+        // --- ADD THIS LINE: This links the click to the Lightbox ---
+        blueprintImg.onclick = () => window.openMapLightbox(blueprintPath, data.floorId, true);
+        blueprintImg.classList.add('cursor-zoom-in'); // Visual hint for user
+
         // Position the pin on the blueprint
         if (data.coords && mapPin) {
             const relX = (data.coords.lng / 2250) * 100;
@@ -819,7 +869,7 @@ window.openViewModal = function(data) {
             
             mapPin.style.left = `${relX}%`;
             mapPin.style.top = `${relY}%`;
-            mapPin.style.transform = 'translate(-50%, -50%)';
+            mapPin.style.transform = 'translate(-50%, -100%)';
             mapPin.classList.remove('hidden');
         } else if (mapPin) {
             mapPin.classList.add('hidden');
