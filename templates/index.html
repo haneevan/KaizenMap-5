@@ -704,15 +704,17 @@
                             <i class="fa-solid fa-map-location-dot text-blue-500 text-xs"></i>
                             <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">詳細場所 (Pin Location)</h4>
                         </div>
+
                         <div id="view-modal-map-container" class="aspect-video rounded-xl border-2 border-slate-200 bg-slate-100 overflow-hidden relative shadow-inner flex items-center justify-center">
                             <!-- Blueprint Image will be populated here -->
-                            <img id="view-modal-blueprint" src="" class="max-w-full max-h-full object-contain" style="display: none;">
+                            <div class="blueprint-anchor">
+                                <img id="view-modal-blueprint" src="" class="max-w-full max-h-full object-contain" style="display: none;">
                             
-                            <!-- Location Pin -->
-                            <div id="view-modal-map-pin" class="absolute hidden pointer-events-none">
-                                <i class="fa-solid fa-location-dot text-red-500 text-3xl drop-shadow-lg"></i>
+                                <!-- Location Pin -->
+                                <div id="view-modal-map-pin" class="absolute hidden pointer-events-none">
+                                    <i class="fa-solid fa-location-dot text-red-500 text-3xl drop-shadow-lg"></i>
+                                </div>
                             </div>
-
                             <!-- Default placeholder -->
                             <div id="view-modal-map-placeholder" class="text-center flex flex-col items-center gap-2 opacity-30">
                                 <i class="fa-solid fa-map text-4xl"></i>
