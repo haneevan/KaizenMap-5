@@ -193,6 +193,32 @@ body.login-bg {
     height: 100vh;
 }
 
+
+/* --- FIX FOR MINI-MAP PIN SYNC --- */
+
+/* This container must wrap both the <img> and the pin <div> */
+.blueprint-anchor {
+    position: relative !important;
+    display: inline-block; /* Crucial: Shrinks the div to the image size */
+    line-height: 0;        /* Removes the tiny gap at the bottom of images */
+}
+
+#view-modal-blueprint, .sync-mini-map-img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* This targets the pin inside the View Modal and the Registration Side Panel */
+#view-modal-map-pin, #mini-pin {
+    position: absolute !important;
+    z-index: 100;
+    pointer-events: none;
+    /* This ensures the 'pointy' end of the icon is the reference point */
+    transform: translate(-50%, -100%) !important;
+}
+
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
