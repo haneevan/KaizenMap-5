@@ -72,6 +72,11 @@ nav, .fixed, .sticky {
     max-width: 95vw;
     height: 297mm;
     max-height: 95vh;
+    background: #ffffff;
+    box-shadow: 0 0 40px rgba(0,0,0,0.3), 0 0 10px rgba(0,0,0,0.1);
+    position: relative;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
 }
 
 /* --- 4. LIGHTBOX SYSTEM (TOP LAYER) --- */
@@ -98,7 +103,7 @@ nav, .fixed, .sticky {
     position: relative;
     overflow: hidden;
     cursor: grab;
-    background: #f8fafc;
+    background: radial-gradient(circle, #f8fafc 0%, #cbd5e1 100%);
     border-radius: 12px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
@@ -117,6 +122,8 @@ nav, .fixed, .sticky {
     display: block;
     user-select: none;
     -webkit-user-drag: none;
+    filter: contrast(1.05) brightness(1.02);
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
 }
 
 #lightbox-footer {
@@ -146,7 +153,12 @@ input:focus {
 }
 
 .dashboard-card {
-    @apply bg-white p-8 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md;
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.15s ease-in-out;
     min-height: 160px;
     display: flex;
     flex-direction: column;
@@ -154,11 +166,44 @@ input:focus {
     align-items: center;
 }
 
+.dashboard-card:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
 .dashboard-stat-number {
-    @apply text-4xl font-black mt-2;
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    font-weight: 900;
+    margin-top: 0.5rem;
     background: linear-gradient(45deg, #1e293b, #3b82f6);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+#dashboard-mini-map {
+    filter: saturate(0.8) brightness(1.02); /* Makes it look like a clean preview */
+    background: #f8fafc;
+    cursor: pointer !important;
+}
+
+#dashboard-mini-map .leaflet-marker-icon {
+    width: 20px !important;
+    height: 20px !important;
+    margin-left: -10px !important;
+    margin-top: -20px !important;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+
+/* Style for the optional tooltips */
+.dashboard-tooltip {
+    background: #1e293b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: bold;
 }
 
 .nav-active {
@@ -211,6 +256,9 @@ input:focus {
     border-radius: 12px !important;
     padding: 12px !important;
     background: white !important;
+    z-index: 1000 !important; /* Ensure it stays above map layers but below nav/modals */
+    max-height: 70vh; /* Prevent it from going off-screen on small heights */
+    overflow-y: auto;
 }
 
 .leaflet-layerstree-header {
@@ -249,6 +297,12 @@ input:focus {
     transform: translate(-50%, -100%) !important;
 }
 
+/* Add a "printed" look to headings within the modal */
+#view-modal-title {
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 0.5rem;
+}
+
 #lightbox-pin {
     color: #ef4444;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
@@ -271,7 +325,18 @@ body.login-bg {
     height: 100vh;
 }
 
+body.modal-open {
+    overflow: hidden !important;
+    height: 100vh;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes marker-pulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(59, 130, 246, 0)); }
+    50% { transform: scale(1.2); filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(59, 130, 246, 0)); }
 }
