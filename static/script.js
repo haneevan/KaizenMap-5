@@ -13,6 +13,8 @@ let startX, startY;
 let translateX = 0;
 let translateY = 0;
 let improvementCache = [];
+let dashboardMap;
+
 
 // Mock User Data - will be updated by session if available
 let currentUser = { id: "USR001", role: "admin", name: "System Admin" }; 
@@ -109,13 +111,19 @@ function showSection(sectionId) {
     if (activeLink) activeLink.classList.add('nav-active');
 
     // --- ADD THIS PART ---
-    if (sectionId === 'map') {
+if (sectionId === 'map') {
         initMap();
         setTimeout(() => { if (map) map.invalidateSize(); }, 200);
-    } else if (sectionId === 'list') {
-        renderImprovementList(); // Refresh the table every time the list is opened
-    } else if (sectionId === 'personal') {
-        renderPersonalKaizenList(); // Refresh personal list every time the section is opened
+    } else if (sectionId === 'home') {
+        setTimeout(() => {
+            updateDashboardMap();
+            if (dashboardMap) {
+                dashboardMap.invalidateSize();
+                // Ensure the full blueprint is centered every time we return home
+                const bounds = [[0, 0], [1500, 2250]];
+                dashboardMap.fitBounds(bounds, { animate: false });
+            }
+        }, 150); // Slightly longer delay helps if the CSS transition is still moving
     }
 }
 
@@ -682,6 +690,56 @@ function updateDashboardClock() {
     clockElement.innerText = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 }
 
+function updateDashboardMap() {
+    const mapContainer = document.getElementById('dashboard-mini-map');
+    if (!mapContainer) return;
+
+    if (!dashboardMap) {
+        dashboardMap = L.map('dashboard-mini-map', {
+            crs: L.CRS.Simple,
+            zoomControl: false,
+            dragging: false, // Set to false for a cleaner "preview" feel
+            scrollWheelZoom: false,
+            attributionControl: false,
+            minZoom: -2,
+            maxZoom: 1
+        });
+
+        // Redirect to full map when the dashboard preview is clicked
+        dashboardMap.on('click', () => showSection('map'));
+    } else {
+        dashboardMap.eachLayer(layer => {
+            if (layer instanceof L.Marker || layer instanceof L.ImageOverlay) {
+                dashboardMap.removeLayer(layer);
+            }
+        });
+    }
+
+    const latestEntry = improvementCache[improvementCache.length - 1];
+    const floorToDisplay = latestEntry ? latestEntry.floorId : "F1_A"; 
+    const blueprintPath = getBlueprintPathFromFloorId(floorToDisplay);
+    const bounds = [[0, 0], [1500, 2250]];
+
+    if (blueprintPath) {
+        L.imageOverlay(blueprintPath, bounds).addTo(dashboardMap);
+
+        improvementCache.forEach(item => {
+            if (item.floorId === floorToDisplay) {
+                // Set interactive: false so clicks pass through to the map container
+                const marker = L.marker(item.coords, { interactive: false }).addTo(dashboardMap);
+                
+                marker.bindTooltip(item.title, { 
+                    permanent: false, 
+                    direction: 'top',
+                    className: 'dashboard-tooltip' 
+                });
+            }
+        });
+
+        dashboardMap.fitBounds(bounds, { animate: false });
+    }
+}
+
 function syncDropdownsToFloor(floorId) {
     const mainAreaSel = document.getElementById('select-main-area');
     const bSel = document.getElementById('select-building');
@@ -1083,4 +1141,13 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('home');
     initLightbox();
     setInterval(updateDashboardClock, 1000);
+    setTimeout(() => {
+    updateDashboardMap();
+    if (dashboardMap) {
+        dashboardMap.invalidateSize();
+        // Force it to fit the bounds again after size is calculated
+        const bounds = [[0, 0], [1500, 2250]];
+        dashboardMap.fitBounds(bounds);
+    }
+}, 200);
 });
