@@ -203,17 +203,14 @@
                     <!--------------->
                     </div>
                     <!---Recent Improvements--->
-                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6 p-2">
-                        <div class="relative group cursor-pointer" onclick="showSection('map')">
-                            <div class="aspect-[21/9] bg-slate-100 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-200">
-                                <div class="text-center">
-                                    <i class="fa-solid fa-map-location-dot text-5xl text-slate-300 mb-2 group-hover:text-blue-500 transition-colors"></i>
-                                    <p class="text-xs font-bold text-slate-400">最新の改善マップを表示 (Click to open Map)</p>
-                                </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6 p-2">   
+                        <div class="relative w-full h-[500px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden group cursor-pointer" onclick="showSection('map')">
+                            <div id="dashboard-mini-map" class="w-full h-full z-0"></div>
+                            <div class="absolute bottom-4 right-4 bg-white/90 px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold text-blue-600 z-10 pointer-events-none">
+                                <i class="fa-solid fa-expand mr-1"></i> Click to Open Full Map
                             </div>
-                        </div>
+                        </div>             
                     </div>
-
                 </div>
             </section>
             <!--Map Section-->
@@ -404,11 +401,11 @@
     <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
     <!--User Info-->
     <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-    <div class="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-white">
-        <img src="{{ session['profile_pic_url'] or '/static/resource/PicIcon/default-avatar.png' }}" 
-             alt="User Profile" 
-             class="w-full h-full object-cover">
-    </div>
+        <div class="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-white">
+            <img src="{{ session['profile_pic_url'] or '/static/resource/PicIcon/default-avatar.png' }}" 
+                alt="User Profile" 
+                class="w-full h-full object-cover">
+        </div>
 
     <div>
         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">制作者 (Submitter)</p>
@@ -429,7 +426,7 @@
     <div class="space-y-4">
         <div>
             <label class="text-[11px] font-black text-slate-400 uppercase mb-1 block tracking-wider">テーマ (Theme)</label>
-            <input type="text" id="kaizen-title" placeholder="改善テーマを入力してください..." class="w-full border-b-2 border-slate-100 focus:border-blue-500 py-3 text-lg outline-none transition-colors font-bold text-slate-800">
+            <input type="text" id="kaizen-title" placeholder="改善提案のテーマを入力してください..." class="w-full border-b-2 border-slate-100 focus:border-blue-500 py-3 text-lg outline-none transition-colors font-bold text-slate-800">
         </div>
     <!---Problem Details--->
         <div>
